@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 
 def extract_states(path):
-  dataset_path = os.path.join("../", path)
+  dataset_path = path
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -27,7 +27,7 @@ def extract_states(path):
   return result
 
 def extract_one_demos(path):
-  dataset_path = os.path.join(".", path)
+  dataset_path = path
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
