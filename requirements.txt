@@ -3,5 +3,5 @@ plotly
 pandas
 h5py
 numpy
-sklearn
+scikit-learn
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/
