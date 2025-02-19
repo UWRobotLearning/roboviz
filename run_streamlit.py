@@ -20,7 +20,9 @@ def density(X):
   return kde
 
 def dbscan(X):
-  clustering = HDBSCAN(min_cluster_size=200).fit(X)
+  #TODO: edited this min_cluster size to test streamlit deploy 
+  # ================ FIX THIS ================
+  clustering = HDBSCAN(min_cluster_size=20).fit(X)
   return clustering
 
 def hdbscan_predict(X, centroids, eps):
