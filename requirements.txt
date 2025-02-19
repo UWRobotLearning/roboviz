@@ -4,4 +4,5 @@ pandas
 h5py
 numpy
 scikit-learn
+matplotlib
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/
