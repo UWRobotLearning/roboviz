@@ -2,4 +2,5 @@ streamlit
 plotly
 pandas
 hdf5
-nummpy
+numpy
+sklearn
