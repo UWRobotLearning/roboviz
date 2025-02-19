@@ -5,5 +5,4 @@ h5py
 numpy
 scikit-learn
 matplotlib
-robomimic
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/

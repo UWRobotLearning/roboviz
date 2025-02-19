@@ -3,9 +3,6 @@ import json
 import h5py
 import numpy as np
 
-import robomimic
-import robomimic.utils.file_utils as FileUtils
-
 def extract_states(path):
   dataset_path = os.path.join("/home/marco/Roboviz", path)
   assert os.path.exists(dataset_path)
