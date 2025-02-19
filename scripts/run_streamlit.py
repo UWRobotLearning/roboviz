@@ -1,5 +1,5 @@
 import streamlit as st
-from roboviz import marco_algorithm
+from roboviz.marco import marco_algorithm
 
 if __name__ == "__main__":
   states = extract_states("./expert_demos.hdf5")
