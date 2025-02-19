@@ -1,7 +1,7 @@
 streamlit
 plotly
 pandas
-hdf5
+h5py
 numpy
 sklearn
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/
