@@ -4,4 +4,4 @@ pandas
 hdf5
 numpy
 sklearn
-git+https://github.com/UWRobotLearning/roboviz/
+roboviz @ git+https://github.com/UWRobotLearning/roboviz/
