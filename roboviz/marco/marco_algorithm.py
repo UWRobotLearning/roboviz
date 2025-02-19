@@ -1,4 +1,4 @@
-from process_hdf5 import extract_states, extract_one_demos
+from roboviz.process_hdf5 import extract_states, extract_one_demos
 from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
 import numpy as np
