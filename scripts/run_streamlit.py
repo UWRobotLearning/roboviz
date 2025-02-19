@@ -5,7 +5,7 @@ import os
 
 if __name__ == "__main__":
   print(os.getcwd())
-  states = extract_states("../expert_demos.hdf5")
-  one_demo = extract_one_demos("../expert_demos.hdf5")
+  states = extract_states("expert_demos.hdf5")
+  one_demo = extract_one_demos("expert_demos.hdf5")
 
   marco_algorithm.main(states, one_demo)
