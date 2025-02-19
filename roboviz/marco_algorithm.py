@@ -18,25 +18,23 @@ def density(X):
   kde = KernelDensity().fit(X)
   return kde
 
-def dbscan(X):
-  clustering = HDBSCAN(min_cluster_size=200).fit(X)
+def dbscan(X, min_cluster_size=200):
+  clustering = HDBSCAN(min_cluster_size=min_cluster_size).fit(X)
   return clustering
 
 def hdbscan_predict(X, centroids, eps):
   labels = [-1] * X.shape[0]
   for i, center in enumerate(centroids):
     labels[np.argmin(np.linalg.norm(X - center, axis=1))] = i
-  """
-  for i in range(len(X)):
-    x = X[i]
-    distances = np.linalg.norm(centroids - x, axis=1)
-    min_distance = np.min(distances)
-    label = np.argmin(distances)
-    if min_distance > eps[label]:
-      labels.append(-1)
-    else:
-      labels.append(label)
-  """
+  #for i in range(len(X)):
+  #  x = X[i]
+  #  distances = np.linalg.norm(centroids - x, axis=1)
+  #  min_distance = np.min(distances)
+  #  label = np.argmin(distances)
+  #  if min_distance > eps[label]:
+  #    labels.append(-1)
+  #  else:
+  #    labels.append(label)
   
   return labels
 
@@ -128,13 +126,12 @@ def calculate_eps(X, centroids, label_set):
 
   return epsilons
 
-if __name__ == "__main__":
-  states = extract_states("data/expert_lampshade2_demos.hdf5")
-  one_demo = extract_one_demos("data/expert_lampshade2_demos.hdf5")
+def main(states, one_demo):
   X = states[:, :3]
   X_demos = one_demo[:, :3]
   
-  clustering = dbscan(X)
+  #TODO: tune the min_cluster_size
+  clustering = dbscan(X, min_cluster_size=30)
 
   # plot datapoints
   fig = plt.figure(figsize=(8, 6))
@@ -157,7 +154,11 @@ if __name__ == "__main__":
   #plot(X_demos, predicted_labels, centroids)
   plot_plotly(X, labels, centroids)
   
-  
+if __name__ == "__main__":
+  states = extract_states("data/expert_lampshade2_demos.hdf5")
+  one_demo = extract_one_demos("data/expert_lampshade2_demos.hdf5")
+
+  main(states, one_demo)
   
 
 
