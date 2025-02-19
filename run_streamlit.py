@@ -1,6 +1,4 @@
 import streamlit as st
-
-
 from roboviz.process_hdf5 import extract_states, extract_one_demos
 from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
@@ -133,7 +131,7 @@ def calculate_eps(X, centroids, label_set):
   return epsilons
 
 if __name__ == "__main__":
-  states = extract_states("./expert__demos.hdf5")
+  states = extract_states("./expert_demos.hdf5")
   one_demo = extract_one_demos("./expert_demos.hdf5")
   X = states[:, :3]
   X_demos = one_demo[:, :3]
