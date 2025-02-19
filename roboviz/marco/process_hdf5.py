@@ -13,6 +13,7 @@ def extract_states(path):
 
   inds = np.argsort([int(elem[5:]) for elem in demos])
   demos = [demos[i] for i in inds]
+  print(len(demos))
 
   demo_key = demos[0]
   demo_grp = f["data/{}".format(demo_key)]
