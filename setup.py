@@ -8,7 +8,6 @@ setup(
     author='Your Name',
     author_email='your.email@example.com',
     description='A brief description of your project',
-    long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/UWRobotLearning/roboviz',
     classifiers=[
