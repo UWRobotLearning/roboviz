@@ -131,7 +131,7 @@ def main(states, one_demo):
   X_demos = one_demo[:, :3]
   
   #TODO: tune the min_cluster_size
-  clustering = dbscan(X, min_cluster_size=10)
+  clustering = dbscan(X, min_cluster_size=5)
 
   # plot datapoints
   fig = plt.figure(figsize=(8, 6))
