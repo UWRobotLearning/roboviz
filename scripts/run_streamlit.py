@@ -7,6 +7,7 @@ import pathlib
 if __name__ == "__main__":
   container_root_path = os.getcwd()
   data_path = pathlib.Path(container_root_path) /  "expert_demos.hdf5"
+  print(data_path)
 
   states = extract_states(data_path)
   one_demo = extract_one_demos(data_path)
