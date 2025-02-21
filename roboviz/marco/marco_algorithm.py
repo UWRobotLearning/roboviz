@@ -3,7 +3,7 @@ from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
 import numpy as np
 from pathlib import Path
-import os
+import sys
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -32,6 +32,8 @@ def hdbscan_predict(X, centroids, eps):
   return labels
 
 def plot(X, labels, centroids):
+  fig = plt.figure(figsize=(8, 6))
+  ax = fig.add_subplot(111, projection='3d')
   norm = mcolors.Normalize(vmin=np.min(labels), vmax=np.max(labels))
   color_map = plt.cm.rainbow(norm(labels))
   ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color_map, marker='o')
@@ -119,17 +121,13 @@ def calculate_eps(X, centroids, label_set, labels):
 
   return epsilons
 
-def main(states, one_demo):
+def main(states, one_demo, min_cluster_size):
   X = states[:, :3]
   print(X.shape)
   X_demos = one_demo[:, :3]
   
   #TODO: tune the min_cluster_size
-  clustering = hdbscan(X, min_cluster_size=10)
-
-  # plot datapoints
-  fig = plt.figure(figsize=(8, 6))
-  ax = fig.add_subplot(111, projection='3d')
+  clustering = hdbscan(X, min_cluster_size=min_cluster_size)
   
   labels = clustering.labels_
   centroids = calculate_centroids(X, labels)
@@ -149,10 +147,11 @@ def main(states, one_demo):
   plot_plotly(X, labels, centroids)
   
 if __name__ == "__main__":
-  states = extract_states("expert_demos.hdf5")
-  one_demo = extract_one_demos("expert_demos.hdf5")
+  states = extract_states(sys.argv[1])
+  one_demo = extract_one_demos(sys.argv[1])
+  min_cluster_size = int(sys.argv[2])
 
-  main(states, one_demo)
+  main(states, one_demo, min_cluster_size)
   
 
 
