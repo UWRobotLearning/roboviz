@@ -1,7 +1,9 @@
-from roboviz.marco.process_hdf5 import extract_states, extract_one_demos
+from process_hdf5 import extract_states, extract_one_demos
 from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
 import numpy as np
+from pathlib import Path
+import os
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -18,7 +20,7 @@ def density(X):
   kde = KernelDensity().fit(X)
   return kde
 
-def dbscan(X, min_cluster_size=200):
+def hdbscan(X, min_cluster_size=200):
   clustering = HDBSCAN(min_cluster_size=min_cluster_size).fit(X)
   return clustering
 
@@ -26,15 +28,6 @@ def hdbscan_predict(X, centroids, eps):
   labels = [-1] * X.shape[0]
   for i, center in enumerate(centroids):
     labels[np.argmin(np.linalg.norm(X - center, axis=1))] = i
-  #for i in range(len(X)):
-  #  x = X[i]
-  #  distances = np.linalg.norm(centroids - x, axis=1)
-  #  min_distance = np.min(distances)
-  #  label = np.argmin(distances)
-  #  if min_distance > eps[label]:
-  #    labels.append(-1)
-  #  else:
-  #    labels.append(label)
   
   return labels
 
@@ -113,7 +106,7 @@ def calculate_centroids(X, labels):
 
   return centroids
 
-def calculate_eps(X, centroids, label_set):
+def calculate_eps(X, centroids, label_set, labels):
   epsilons = []
   for label in label_set:
     if label == -1:
@@ -128,10 +121,11 @@ def calculate_eps(X, centroids, label_set):
 
 def main(states, one_demo):
   X = states[:, :3]
+  print(X.shape)
   X_demos = one_demo[:, :3]
   
   #TODO: tune the min_cluster_size
-  clustering = dbscan(X, min_cluster_size=5)
+  clustering = hdbscan(X, min_cluster_size=10)
 
   # plot datapoints
   fig = plt.figure(figsize=(8, 6))
@@ -139,7 +133,7 @@ def main(states, one_demo):
   
   labels = clustering.labels_
   centroids = calculate_centroids(X, labels)
-  epsilons = calculate_eps(X, centroids, set(labels))
+  epsilons = calculate_eps(X, centroids, set(labels), labels)
   print(epsilons)
   mask = labels != -1
   X = X[mask]
@@ -155,8 +149,8 @@ def main(states, one_demo):
   plot_plotly(X, labels, centroids)
   
 if __name__ == "__main__":
-  states = extract_states("data/expert_lampshade2_demos.hdf5")
-  one_demo = extract_one_demos("data/expert_lampshade2_demos.hdf5")
+  states = extract_states("expert_demos.hdf5")
+  one_demo = extract_one_demos("expert_demos.hdf5")
 
   main(states, one_demo)
   
