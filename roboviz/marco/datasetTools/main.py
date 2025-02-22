@@ -3,8 +3,8 @@ import sys
 from torch.utils.data import DataLoader
 from datasets import Dataset, load_dataset, load_from_disk
 
-
-
+# Use this to convert the Trajectory dataset to huggingface dataset.
+# TODO: Need to make streaming available
 def main(path):
   dataset = TrajectoryDataset(path)
   dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
