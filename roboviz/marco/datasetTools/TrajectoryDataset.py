@@ -1,8 +1,11 @@
 import os
 import h5py
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 from torch import from_numpy
+from torch.utils.data import IterableDataset, get_worker_info
+import h5py
+import s3fs
 
 class TrajectoryDataset(Dataset):
   def __init__(self, path) -> None:
@@ -40,6 +43,40 @@ class TrajectoryDataset(Dataset):
       result = np.concat((result, points), axis=0)
 
     return from_numpy(result)
+  
+class IterableTrajectoryDataset(IterableDataset):
+    def __init__(self, s3_path):
+        """
+        s3_path: A string representing the S3 URI, e.g., "s3://your-bucket/path/to/file.hdf5"
+        """
+        self.s3_path = s3_path
+        self.fs = s3fs.S3FileSystem(key="",
+                                    secret="",
+                                    client_kwargs={})  # Input S3 credentials
+    
+    def __iter__(self):
+        with self.fs.open(self.s3_path, 'rb') as f:
+            h5_file = h5py.File(f, 'r')
+            demos = list(h5_file["data"].keys())
+            
+            inds = np.argsort([int(elem[5:]) for elem in demos])
+            demos = [demos[i] for i in inds]
+            
+            # If using multiple workers, split the demos among them
+            worker_info = get_worker_info()
+            if worker_info is not None:
+                num_workers = worker_info.num_workers
+                worker_id = worker_info.id
+                demos = demos[worker_id::num_workers]
+            
+            # This is currently yielding point-wise.
+            # We can modify this in the future to return whatever we want
+            for demo_key in demos:
+                demo_grp = h5_file["data/{}".format(demo_key)]
+                points = demo_grp["obs/states"]
+                for i in range(points.shape[0]):
+                    yield from_numpy(points[i])
+            h5_file.close()
   
 
    

@@ -1,4 +1,4 @@
-from roboviz.marco.datasetTools.TrajectoryDataset import TrajectoryDataset
+from roboviz.marco.datasetTools.TrajectoryDataset import TrajectoryDataset, IterableTrajectoryDataset
 import sys
 from torch.utils.data import DataLoader
 from datasets import Dataset, load_dataset, load_from_disk
@@ -17,5 +17,6 @@ def main(path):
   dset.save_to_disk("")  # change path to where you want to save the dataset
 
 if __name__ == "__main__":
-  main(sys.argv[1])
-  
+  s3_path = ""  # Path to S3 bucket
+  dataset = IterableTrajectoryDataset(s3_path)
+  dataloader = DataLoader(dataset, batch_size=32)
