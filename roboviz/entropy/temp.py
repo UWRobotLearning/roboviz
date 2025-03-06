@@ -104,7 +104,8 @@ def create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, ove
     fig.show()
 
 def main():
-    hdf5_file_path = '/mmfs1/home/jgashler/play_pushing.hdf5'
+    hdf5_file_path = 'play_pushing.hdf5'
+    # hdf5_file_path = '/mmfs1/home/jgashler/play_pushing.hdf5' # full path
     # play_pushing.hdf5
     # expert_lampshade2_demos.hdf5
     data_type = 'states'
