@@ -4,9 +4,6 @@ import plotly.graph_objs as go
 import plotly.offline as py
 from scipy.stats import entropy
 
-# Ensure plotly rendering in Jupyter notebooks
-py.init_notebook_mode(connected=True)
-
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
     with h5py.File(file_path, 'r') as f:
         data_path = f'data/{demo_name}/{obs_type}/{data_type}'
@@ -68,7 +65,9 @@ def create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, ove
         annotations=[annotation]
     )
     fig = go.Figure(data=traces, layout=layout)
-    py.iplot(fig)  # Use py.iplot to display the plot inline in Jupyter Notebook
+    
+    # Use fig.show() to display the plot inline in Jupyter
+    fig.show()  # This renders the plot inline
 
 def main():
     hdf5_file_path = 'play_pushing.hdf5'
@@ -99,5 +98,7 @@ def main():
         # Create the 3D plot with classification
         create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, overall_entropy, std_entropy, classification)
 
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()
