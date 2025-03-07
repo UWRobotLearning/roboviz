@@ -114,8 +114,7 @@ def plot_edges(edges):
         marker=dict(color=color, size=8),
         name=f"Edge {edge}"
     ))
-
-  fig.show()
+  return fig
 
 def calculate_centroids(X, labels):
   centroids = np.zeros((0, 3))
@@ -183,7 +182,7 @@ def main(states, one_demo, min_cluster_size):
   #plot(X_demos, predicted_labels, centroids)
   #plot_plotly(X, labels, centroids)
   #plot_plotly(X_demos, predicted_labels, centroids)
-  plot_edges(edges)
+  return plot_edges(edges)
   
 if __name__ == "__main__":
   states = extract_states(sys.argv[1])
