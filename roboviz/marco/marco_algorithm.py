@@ -5,10 +5,6 @@ import numpy as np
 from pathlib import Path
 import sys
 
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -30,26 +26,6 @@ def hdbscan_predict(X, centroids, eps):
     labels[np.argmin(np.linalg.norm(X - center, axis=1))] = i
   
   return labels
-
-def plot(X, labels, centroids):
-  fig = plt.figure(figsize=(8, 6))
-  ax = fig.add_subplot(111, projection='3d')
-  norm = mcolors.Normalize(vmin=np.min(labels), vmax=np.max(labels))
-  color_map = plt.cm.rainbow(norm(labels))
-  ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=color_map, marker='o')
-
-  ax.scatter(centroids[:, 0], centroids[:, 1], centroids[:, 2], c='red', marker='x', s=400)
-
-  ax.set_xlabel("X-axis")
-  ax.set_ylabel("Y-axis")
-  ax.set_zlabel("Z-axis")
-  ax.set_title("Clusters of captured points-expert play data")
-
-  mappable = plt.cm.ScalarMappable(norm=norm, cmap=plt.cm.rainbow)
-  mappable.set_array(labels)
-  cbar = plt.colorbar(mappable, ax=ax, shrink=0.6, aspect=15, pad=0.1)
-  cbar.set_label("labels")
-  plt.show()
 
 def plot_plotly(X, labels, centroids):
     X = X[:, :3]
