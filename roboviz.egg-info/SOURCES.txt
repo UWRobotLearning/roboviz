@@ -7,3 +7,6 @@ roboviz.egg-info/top_level.txt
 roboviz/marco/__init__.py
 roboviz/marco/marco_algorithm.py
 roboviz/marco/process_hdf5.py
+roboviz/marco/datasetTools/TrajectoryDataset.py
+roboviz/marco/datasetTools/__init__.py
+roboviz/marco/datasetTools/main.py

@@ -90,7 +90,6 @@ def plot_edges(edges):
         marker=dict(color=color, size=8),
         name=f"Edge {edge}"
     ))
-  fig.show()
   return fig
 
 def calculate_centroids(X, labels):

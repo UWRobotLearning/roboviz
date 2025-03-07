@@ -47,7 +47,7 @@ def extract_one_demos(path):
   for i, demo_key in enumerate(demos):
       demo_grp = f["data/{}".format(demo_key)]
       points = demo_grp["obs/states"]
-      result = np.concatenate((result, points), axis=0)
+      result = np.concat((result, points), axis=0)
       break
 
   return result
