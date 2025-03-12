@@ -20,6 +20,8 @@ You can install the required dependencies using pip:
 
 ```bash
 pip install numpy h5py scipy plotly
+--or--
+pip install -r requirements.txt
 ```
 ### Computing Entropy
 
