@@ -1,0 +1,9 @@
+# Requirements for trajectory visualization and clustering project
+
+numpy
+h5py
+matplotlib
+ipympl
+hdbscan
+scikit-learn
+scipy
