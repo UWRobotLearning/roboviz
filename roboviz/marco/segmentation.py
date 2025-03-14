@@ -1,3 +1,7 @@
+import importlib
+import os
+import h5py
+import process_hdf5
 from process_hdf5 import extract_states, extract_one_demos
 from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
@@ -7,6 +11,11 @@ import sys
 
 import plotly.express as px
 import plotly.graph_objects as go
+
+
+importlib.reload(process_hdf5)
+
+
 
 def cluster(X):
   kmeans = KMeans(n_clusters=2, init='k-means++')
@@ -102,7 +111,7 @@ def calculate_centroids(X, labels):
     
     mask = (labels == label)
     x = X[mask]
-    centroids = np.concat((centroids, np.mean(x, axis=0, keepdims=True)), axis=0)
+    centroids = np.concatenate((centroids, np.mean(x, axis=0, keepdims=True)), axis=0)
 
   return centroids
 
@@ -126,14 +135,25 @@ def split_edges(X, labels):
   assert len(X) == len(labels)
   labels = np.array(labels)
   indices = list(np.argwhere(labels >= 0).flatten())
+  
   indices.insert(0, 0)
   indices.append(len(labels))
+
   res = {}
-  edge = 0
+  edges = 0
   for i in range(len(indices) - 1):
     if i < len(indices) - 1:
-      res[edge] = X[indices[i]:indices[i+1], :]
-      edge += 1
+      res[edges] = X[indices[i]:indices[i+1], :]
+      edges += 1
+
+  # coalesce edges that are too short
+  for edge in range(edges):
+    if edge == 0:
+      continue
+    else:
+      if len(res[edge]) < len(X) / (len(indices) * 2):
+        res[edge - 1] = np.concatenate((res[edge - 1], res.pop(edge)), axis=0)
+  
 
   return res
 
@@ -142,7 +162,6 @@ def main(states, one_demo, min_cluster_size):
   print(X.shape)
   X_demos = one_demo[:, :3]
   
-  #TODO: tune the min_cluster_size
   clustering = hdbscan(X, min_cluster_size=min_cluster_size)
   
   labels = clustering.labels_
