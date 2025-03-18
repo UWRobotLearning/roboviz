@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jamie's Super Awesome App Template</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Left panel for key/description -->
+    <div class="left-panel">
+      <h1>Lampshade Demos</h1>
+      <iframe src="static/description.html" frameborder="0" style="width: 100%; height: calc(100% - 40px); border-radius: 10px;"></iframe>
+    </div>
+
+    <!-- Center Panel: Plot -->
+    <div class="center-panel">
+      <div id="loading">Loading Plot...</div>
+      <iframe src="static/plot.html" class="plot-frame" onload="hideLoading()"></iframe>
+    </div>
+
+    <!-- Right panel for controls -->
+    <div class="right-panel">
+      <div class="controls">
+        <input type="range" min="0" max="100" value="50" class="slider">
+        <input type="range" min="0" max="100" value="50" class="slider">
+        <button class="glossy-button" onclick="runEntropy()">Entropy</button>
+        <button class="glossy-button">KMeans</button>
+        <button class="glossy-button" onclick="runKernel()">Kernel Density</button>
+        <button class="glossy-button">Another Cool Feature</button>
+      </div>
+    </div>
+
+    <!-- Bottom panel for small buttons -->
+    <div class="bottom-panel">
+      <button class="bottom-button">Clusters</button>
+      <button class="bottom-button">Arm States</button>
+      <button class="bottom-button">Video Data</button>
+    </div>
+  </div>
+
+  <script>
+    function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+function runEntropy() {
+  fetch('/run_entropy')
+    .then(response => response.json())
+    .then(data => {
+      console.log('Entropy script run:', data);
+      updatePlot();  // This will refresh the plot
+    })
+    .catch(error => console.error('Error running entropy script:', error));
+}
+
+function runKernel() {
+  fetch('/run_kernel')
+    .then(response => response.json())
+    .then(data => {
+      console.log('Kernel Density script run:', data);
+      updatePlot();  // This will refresh the plot
+    })
+    .catch(error => console.error('Error running kernel script:', error));
+}
+
+function updatePlot() {
+  var iframe = document.querySelector('.plot-frame');
+  iframe.src = iframe.src;  // This reloads the iframe to show the new plot
+}
+
+  </script>
+
+  <style>
+    #loading {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</body>
+</html>
