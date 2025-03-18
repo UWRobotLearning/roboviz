@@ -3,9 +3,9 @@ Will update this soon with more instructions & updated file paths. feel free to 
 project_root/
 │
 ├── static/
-│   └── plot.html
-│   └── styles.css
-│   └── description.html
+│   └── plot.html  # plot placeholder that gets updated at the press of a button
+│   └── styles.css # css styling code
+│   └── description.html      # description that gets displayed on the fancy interface. Feel free to edit anything here to add context :)
 │
 ├── templates/
 │   └── index.html
