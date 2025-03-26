@@ -21,6 +21,14 @@ def run_entropy():
     return jsonify({'status': 'success'})
     print("ahahahah I got here first")
 
+# Route to handle Segmentation button click
+@app.route('/run_segmentation', methods=['GET'])
+def run_segmentation():
+    # Run the entropy.py script (assuming it's in the same folder)
+    subprocess.run(['python', 'segmentation.py', 'data/expert_lampshade2_demos.hdf5'])
+    return jsonify({'status': 'success'})
+    print("ahahahah I got here first")
+
 
 # Route to handle Kernel Density button click
 @app.route('/run_kernel', methods=['GET'])

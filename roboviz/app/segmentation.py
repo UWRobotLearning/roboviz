@@ -1,7 +1,6 @@
 import importlib
 import os
 import h5py
-import process_hdf5
 from sklearn.cluster import KMeans, DBSCAN, HDBSCAN
 from sklearn.neighbors import KernelDensity
 import numpy as np
@@ -11,10 +10,59 @@ import sys
 import plotly.express as px
 import plotly.graph_objects as go
 
+def extract_states(path):
+  dataset_path = os.path.join("/home/marco/Roboviz", path)
+  assert os.path.exists(dataset_path)
 
+  f = h5py.File(dataset_path, "r")
+
+  demos = list(f["data"].keys())
+  num_demos = len(demos)
+
+  inds = np.argsort([int(elem[5:]) for elem in demos])
+  demos = [demos[i] for i in inds]
+  print(f"Num demos loaded: {len(demos)}")
+
+  demo_key = demos[0]
+  demo_grp = f["data/{}".format(demo_key)]
+  
+  result = np.zeros((0, demo_grp["obs/states"].shape[1]))
+
+  for i, demo_key in enumerate(demos):
+    demo_grp = f["data/{}".format(demo_key)]
+    points = demo_grp["obs/states"]
+    result = np.concatenate((result, points), axis=0)
+
+  return result
+
+def extract_one_demos(path):
+  dataset_path = os.path.join("/home/marco/Roboviz", path)
+  assert os.path.exists(dataset_path)
+
+  f = h5py.File(dataset_path, "r")
+
+  demos = list(f["data"].keys())
+  num_demos = len(demos)
+
+  inds = np.argsort([int(elem[5:]) for elem in demos])
+  demos = [demos[i] for i in inds]
+
+  demo_key = demos[0]
+  demo_grp = f["data/{}".format(demo_key)]
+  
+  result = np.zeros((0, demo_grp["obs/states"].shape[1]))
+
+  for i, demo_key in enumerate(demos):
+      demo_grp = f["data/{}".format(demo_key)]
+      points = demo_grp["obs/states"]
+      result = np.concatenate((result, points), axis=0)
+      break
+
+  return result
 
 def extract_states_trajectory_separated(path):
   dataset_path = os.path.join("/home/marco/Roboviz", path)
+  print(dataset_path)
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -115,8 +163,7 @@ def plot_edges(multi_edges):
           marker=dict(color=color, size=8),
           name=f"Edge {edge}"
       ))
-  fig.show()
-  return fig
+  fig.write_html('static/plot.html')
 
 def calculate_centroids(X, labels):
   centroids = np.zeros((0, 3))
@@ -192,13 +239,12 @@ def main(states, trajectories, min_cluster_size):
 
     multi_edges[demo_num] = split_edges(points[:, :3], trajectories_labels[demo_num])
 
-  return plot_edges(multi_edges)
+  plot_edges(multi_edges)
   
 if __name__ == "__main__":
-  importlib.reload(process_hdf5)
   trajectory_separated = extract_states_trajectory_separated(sys.argv[1])
-  states = process_hdf5.extract_states(sys.argv[1])
-  one_demo = process_hdf5.extract_one_demos(sys.argv[1])
+  states = extract_states(sys.argv[1])
+  one_demo = extract_one_demos(sys.argv[1])
   min_cluster_size = int(0.1 * states.shape[0])
   main(states, trajectory_separated, min_cluster_size)
   

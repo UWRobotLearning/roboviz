@@ -58,7 +58,7 @@ def create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, ove
     py.plot(fig, filename='static/plot.html', auto_open=False)
 
 def main():
-    hdf5_file_path = 'expert_lampshade2_demos.hdf5'
+    hdf5_file_path = 'data/expert_lampshade2_demos.hdf5'
     data_type = 'states'
     obs_type = 'obs'
     
