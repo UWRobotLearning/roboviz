@@ -11,7 +11,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 def extract_states(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -36,7 +35,6 @@ def extract_states(path):
   return result
 
 def extract_one_demos(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -61,8 +59,6 @@ def extract_one_demos(path):
   return result
 
 def extract_states_trajectory_separated(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
-  print(dataset_path)
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -242,9 +238,10 @@ def main(states, trajectories, min_cluster_size):
   plot_edges(multi_edges)
   
 if __name__ == "__main__":
-  trajectory_separated = extract_states_trajectory_separated(sys.argv[1])
-  states = extract_states(sys.argv[1])
-  one_demo = extract_one_demos(sys.argv[1])
+  dataset_path = "/home/marco/Roboviz/data/expert_lampshade2_demos.hdf5"  # path to dataset, to be changed by user
+  trajectory_separated = extract_states_trajectory_separated(dataset_path)
+  states = extract_states(dataset_path)
+  one_demo = extract_one_demos(dataset_path)
   min_cluster_size = int(0.1 * states.shape[0])
   main(states, trajectory_separated, min_cluster_size)
   
