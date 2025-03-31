@@ -10,7 +10,7 @@ import sys
 import plotly.express as px
 import plotly.graph_objects as go
 
-def extract_states(path):
+def extract_states(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -34,7 +34,7 @@ def extract_states(path):
 
   return result
 
-def extract_one_demos(path):
+def extract_one_demos(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -58,7 +58,7 @@ def extract_one_demos(path):
 
   return result
 
-def extract_states_trajectory_separated(path):
+def extract_states_trajectory_separated(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -95,7 +95,9 @@ def hdbscan(X, min_cluster_size=200):
 def hdbscan_predict(X, centroids, eps):
   labels = [-1] * X.shape[0]
   for i, center in enumerate(centroids):
-    labels[np.argmin(np.linalg.norm(X - center, axis=1))] = i
+    distances = np.linalg.norm(X - center, axis=1)
+    if np.min(distances) <= eps[i]:
+      labels[np.argmin(distances)] = i
   
   return labels
 
