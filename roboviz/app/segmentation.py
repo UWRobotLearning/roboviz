@@ -216,10 +216,11 @@ def split_edges(X, labels):
 
   return res
 
-def main(states, trajectories, min_cluster_size):
+def main(states, trajectories, min_cluster_size, one_demo):
   X = states[:, :3]
   print(X.shape)
   
+  # trainining the clusterer and obtain cluster centers
   clustering = hdbscan(X, min_cluster_size=min_cluster_size)
   
   labels = clustering.labels_
@@ -229,6 +230,7 @@ def main(states, trajectories, min_cluster_size):
   X = X[mask]
   labels = labels[mask]
   
+  # inference step and split trajectories to multiple edges
   #predicted_labels = hdbscan_predict(X_demos, centroids, epsilons)
   trajectories_labels = {}
   multi_edges = {}
@@ -245,7 +247,7 @@ if __name__ == "__main__":
   states = extract_states(dataset_path)
   one_demo = extract_one_demos(dataset_path)
   min_cluster_size = int(0.1 * states.shape[0])
-  main(states, trajectory_separated, min_cluster_size)
+  main(states, trajectory_separated, min_cluster_size, one_demo)
   
 
 
