@@ -25,7 +25,7 @@ def run_entropy():
 @app.route('/run_segmentation', methods=['GET'])
 def run_segmentation():
     # Run the entropy.py script (assuming it's in the same folder)
-    subprocess.run(['python', 'segmentation.py', 'data/expert_lampshade2_demos.hdf5'])
+    subprocess.run(['python', 'segmentation.py'])
     return jsonify({'status': 'success'})
     print("ahahahah I got here first")
 

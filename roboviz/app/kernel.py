@@ -117,7 +117,7 @@ def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="Ker
 # Main code to load the data and create a 3D visualization with KDE
 def main():
     # play_pushing.hdf5
-    hdf5_file_path = 'expert_lampshade2_demos.hdf5'  # Change this to the directory where expert/ play data is located
+    hdf5_file_path = '/home/marco/Roboviz/data/expert_lampshade2_demos.hdf5'  # Change this to the directory where expert/ play data is located
     data_type = 'states'  # The key that holds the state data (translation + quaternion)
     obs_type = 'obs'
     

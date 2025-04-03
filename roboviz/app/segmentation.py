@@ -146,10 +146,16 @@ def plot_plotly(X, labels, centroids):
     fig.show()
     fig.write_html('plot.html')
 
+"""
+Sample input = {'Trajectory_1' : {
+  edge_1 = [..],
+  edge_2 = [..],
+}, 'Trajectory_2' : ...}
+"""
 def plot_edges(multi_edges):
   colors = px.colors.qualitative.Plotly
   fig = go.Figure()
-  for _, edges in multi_edges.items():
+  for index, edges in multi_edges.items():
     for i, (edge, points) in enumerate(edges.items()):
       color = colors[i % len(colors)]
       
@@ -159,7 +165,7 @@ def plot_edges(multi_edges):
           z=points[:, 2],
           mode='markers',
           marker=dict(color=color, size=8),
-          name=f"Edge {edge}"
+          name=f"Trajectory : {index}, Edge {edge}"
       ))
   fig.write_html('static/plot.html')
 
@@ -207,8 +213,9 @@ def split_edges(X, labels):
 
   # coalesce edges that are too short
   for edge in range(edges):
-    if edge == 0:
-      continue
+    if edge == 0 and edge + 1 in res:
+      if (len(res[edge]) < len(X) / len(indices) * 2):
+        res[edge + 1] = np.concatenate((res[edge + 1], res.pop(edge)), axis = 0)
     else:
       if len(res[edge]) < len(X) / (len(indices) * 2):
         res[edge - 1] = np.concatenate((res[edge - 1], res.pop(edge)), axis=0)
