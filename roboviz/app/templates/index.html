@@ -29,6 +29,7 @@
         <button class="glossy-button" onclick="runEntropy()">Entropy</button>
         <button class="glossy-button">KMeans</button>
         <button class="glossy-button" onclick="runKernel()">Kernel Density</button>
+        <button class="glossy-button" onclick="runSegmentation()">Segmentation</button>
         <button class="glossy-button">Another Cool Feature</button>
       </div>
     </div>
@@ -73,6 +74,16 @@
           updatePlot();  // This will refresh the plot
         })
         .catch(error => console.error('Error running kernel script:', error));
+    }
+    
+    function runSegmentation() {
+      fetch('/run_segmentation')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Segmentation script run:', data);
+          updatePlot();
+        })
+      .catch(error => console.error('Error running kernel script:', error));
     }
 
     // Updates the plot
