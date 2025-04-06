@@ -1,13 +1,14 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Jamie's Super Awesome App Template</title>
+  <title>Roboviz App</title>
   <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
   <div class="container">
-    <!-- Left panel for key/description -->
+    <!-- Left panel for description -->
     <div class="left-panel">
       <h1>Lampshade Demos</h1>
       <iframe src="static/description.html" frameborder="0" style="width: 100%; height: calc(100% - 40px); border-radius: 10px;"></iframe>
@@ -19,7 +20,8 @@
       <iframe src="static/plot.html" class="plot-frame" onload="hideLoading()"></iframe>
     </div>
 
-    <!-- Right panel for controls -->
+
+    <!-- Right panel for controls TODO: add more button features here-->
     <div class="right-panel">
       <div class="controls">
         <input type="range" min="0" max="100" value="50" class="slider">
@@ -27,61 +29,95 @@
         <button class="glossy-button" onclick="runEntropy()">Entropy</button>
         <button class="glossy-button">KMeans</button>
         <button class="glossy-button" onclick="runKernel()">Kernel Density</button>
-        <button class="glossy-button" onclick="runSegmentation()">Segmentation</button>
         <button class="glossy-button">Another Cool Feature</button>
       </div>
     </div>
 
-    <!-- Bottom panel for small buttons -->
+    <!-- Bottom panel for small buttons & file path input TODO: implement features here-->
     <div class="bottom-panel">
       <button class="bottom-button">Clusters</button>
       <button class="bottom-button">Arm States</button>
       <button class="bottom-button">Video Data</button>
+      <input type="text" class="bottom-input" placeholder="Enter hdf5 file path..." id="textInput">
     </div>
-  </div>
 
+
+
+
+
+    <!-- Methods for loading the screen and what happens when a button is pressed -->
   <script>
+
+    // hides the loading screen once the content is visible
     function hideLoading() {
-  document.getElementById('loading').style.display = 'none';
-}
+      document.getElementById('loading').style.display = 'none';
+    }
 
-function runEntropy() {
-  fetch('/run_entropy')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Entropy script run:', data);
-      updatePlot();  // This will refresh the plot
-    })
-    .catch(error => console.error('Error running entropy script:', error));
-}
+    // Sends instructions to the app that runs entropy.py through a GET request, logs if successful, then updates the plot
+    function runEntropy() {
+      fetch('/run_entropy')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Entropy script run:', data);
+          updatePlot();  // This will refresh the plot
+        })
+        .catch(error => console.error('Error running entropy script:', error));
+    }
 
-function runKernel() {
-  fetch('/run_kernel')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Kernel Density script run:', data);
-      updatePlot();  // This will refresh the plot
-    })
-    .catch(error => console.error('Error running kernel script:', error));
-}
+    // Sends instructions to the app that runs kernel.py through a GET request, logs if successful, then updates the plot
+    function runKernel() {
+      fetch('/run_kernel')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Kernel Density script run:', data);
+          updatePlot();  // This will refresh the plot
+        })
+        .catch(error => console.error('Error running kernel script:', error));
+    }
 
-function updatePlot() {
-  var iframe = document.querySelector('.plot-frame');
-  iframe.src = iframe.src;  // This reloads the iframe to show the new plot
-}
+    // Updates the plot
+    function updatePlot() {
+      var iframe = document.querySelector('.plot-frame');
+      iframe.src = 'static/plot.html?' + new Date().getTime();  // Adding a timestamp to the URL to bypass cache
+    }
 
-function runSegmentation() {
-  fetch('/run_segmentation')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Segmentation script run:', data);
-    updatePlot();
-  })
-  .catch(error => console.error('Error running kernel script:', error));
-}
 
+    // Event listener to send input and clear input when Enter is pressed
+    document.getElementById('textInput').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        // Get the user input value
+        const userInput = event.target.value;
+
+        // Send the input data to the backend using Fetch API
+        fetch('/send_input', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ input: userInput })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            console.log('Input sent successfully:', userInput);
+          } else {
+            console.error('Error sending input:', data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending input:', error);
+        });
+
+        // Clear the input field
+        event.target.value = '';  
+      }
+    });
   </script>
 
+
+
+
+  <!-- Loading style *messed up the layout when in styles.css for some reason*-->
   <style>
     #loading {
       position: absolute;
