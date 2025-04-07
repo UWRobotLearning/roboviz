@@ -14,7 +14,7 @@ app/
 │   └── kernel.py   # Kernel density script (outputs static/plot.html)
 │   └── kernel.py   # segmentation script (outputs static/plot.html)
 │
-├── templates/
+├── data/
 │   └── play_pushing.hdf5             # play demos
 │   └── expert_lampshade2_demos.hdf5  # expert demos
 │
