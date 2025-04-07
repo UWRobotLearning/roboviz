@@ -5,4 +5,6 @@ h5py
 numpy
 scikit-learn==1.4
 matplotlib
+flask
+scipy
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/
