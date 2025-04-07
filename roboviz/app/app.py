@@ -22,7 +22,7 @@ def get_plot():
 def run_entropy():
     if user_input:
         # Pass the user input to entropy.py via a subprocess call
-        result = subprocess.run(['python', 'entropy.py', user_input], capture_output=True, text=True)
+        result = subprocess.run(['python', 'algos/entropy.py', user_input], capture_output=True, text=True)
         print(result.stdout)  # Print the output of entropy.py for debugging
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
@@ -31,9 +31,14 @@ def run_entropy():
 # Route to handle Kernel Density button click
 @app.route('/run_kernel', methods=['GET'])
 def run_kernel():
-    # Run the kernel.py script
-    # subprocess.run(['python', 'kernel.py'])
-    return jsonify({'status': 'success'})
+    if user_input:
+        # Pass the user input (HDF5 file path) to kernel.py via a subprocess call
+        result = subprocess.run(['python', 'algos/kernel.py', user_input], capture_output=True, text=True)
+        print(result.stdout)  # Print the output of kernel.py for debugging
+        return jsonify({'status': 'success', 'output': result.stdout})
+    else:
+        return jsonify({'status': 'error', 'message': 'No input provided.'})
+
 
 # Route to handle sending input from the user
 @app.route('/send_input', methods=['POST'])
@@ -52,7 +57,7 @@ def handle_input():
 def run_segmentation():
     if user_input:
         # Use the user input to pass as the file path to segmentation.py
-        result = subprocess.run(['python', 'segmentation.py', user_input], capture_output=True, text=True)
+        result = subprocess.run(['python', 'algos/segmentation.py', user_input], capture_output=True, text=True)
         print(result.stdout)  # Print the output of segmentation.py for debugging
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
