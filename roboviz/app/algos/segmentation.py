@@ -1,4 +1,3 @@
-# segmentation.py
 import importlib
 import os
 import h5py
@@ -11,8 +10,7 @@ import sys
 import plotly.express as px
 import plotly.graph_objects as go
 
-def extract_states(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
+def extract_states(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -36,8 +34,7 @@ def extract_states(path):
 
   return result
 
-def extract_one_demos(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
+def extract_one_demos(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -61,9 +58,7 @@ def extract_one_demos(path):
 
   return result
 
-def extract_states_trajectory_separated(path):
-  dataset_path = os.path.join("/home/marco/Roboviz", path)
-  print(dataset_path)
+def extract_states_trajectory_separated(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
@@ -100,7 +95,9 @@ def hdbscan(X, min_cluster_size=200):
 def hdbscan_predict(X, centroids, eps):
   labels = [-1] * X.shape[0]
   for i, center in enumerate(centroids):
-    labels[np.argmin(np.linalg.norm(X - center, axis=1))] = i
+    distances = np.linalg.norm(X - center, axis=1)
+    if np.min(distances) <= eps[i]:
+      labels[np.argmin(distances)] = i
   
   return labels
 
@@ -149,10 +146,16 @@ def plot_plotly(X, labels, centroids):
     fig.show()
     fig.write_html('plot.html')
 
+"""
+Sample input = {'Trajectory_1' : {
+  edge_1 = [..],
+  edge_2 = [..],
+}, 'Trajectory_2' : ...}
+"""
 def plot_edges(multi_edges):
   colors = px.colors.qualitative.Plotly
   fig = go.Figure()
-  for _, edges in multi_edges.items():
+  for index, edges in multi_edges.items():
     for i, (edge, points) in enumerate(edges.items()):
       color = colors[i % len(colors)]
       
@@ -162,7 +165,7 @@ def plot_edges(multi_edges):
           z=points[:, 2],
           mode='markers',
           marker=dict(color=color, size=8),
-          name=f"Edge {edge}"
+          name=f"Trajectory : {index}, Edge {edge}"
       ))
   fig.write_html('static/plot.html')
 
@@ -210,8 +213,9 @@ def split_edges(X, labels):
 
   # coalesce edges that are too short
   for edge in range(edges):
-    if edge == 0:
-      continue
+    if edge == 0 and edge + 1 in res:
+      if (len(res[edge]) < len(X) / len(indices) * 2):
+        res[edge + 1] = np.concatenate((res[edge + 1], res.pop(edge)), axis = 0)
     else:
       if len(res[edge]) < len(X) / (len(indices) * 2):
         res[edge - 1] = np.concatenate((res[edge - 1], res.pop(edge)), axis=0)
@@ -219,10 +223,11 @@ def split_edges(X, labels):
 
   return res
 
-def main(states, trajectories, min_cluster_size):
+def main(states, trajectories, min_cluster_size, one_demo):
   X = states[:, :3]
   print(X.shape)
   
+  # trainining the clusterer and obtain cluster centers
   clustering = hdbscan(X, min_cluster_size=min_cluster_size)
   
   labels = clustering.labels_
@@ -232,6 +237,7 @@ def main(states, trajectories, min_cluster_size):
   X = X[mask]
   labels = labels[mask]
   
+  # inference step and split trajectories to multiple edges
   #predicted_labels = hdbscan_predict(X_demos, centroids, epsilons)
   trajectories_labels = {}
   multi_edges = {}
@@ -243,11 +249,12 @@ def main(states, trajectories, min_cluster_size):
   plot_edges(multi_edges)
   
 if __name__ == "__main__":
-  trajectory_separated = extract_states_trajectory_separated(sys.argv[1])
-  states = extract_states(sys.argv[1])
-  one_demo = extract_one_demos(sys.argv[1])
+  dataset_path = sys.argv[1] # path to dataset, to be changed by user
+  trajectory_separated = extract_states_trajectory_separated(dataset_path)
+  states = extract_states(dataset_path)
+  one_demo = extract_one_demos(dataset_path)
   min_cluster_size = int(0.1 * states.shape[0])
-  main(states, trajectory_separated, min_cluster_size)
+  main(states, trajectory_separated, min_cluster_size, one_demo)
   
 
 
