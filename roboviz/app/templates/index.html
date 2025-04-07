@@ -40,6 +40,7 @@
       <button class="bottom-button">Arm States</button>
       <button class="bottom-button">Video Data</button>
       <input type="text" class="bottom-input" placeholder="Enter hdf5 file path..." id="textInput">
+      <p id="dataset-path">dataset-path: </p>
     </div>
 
 
@@ -111,6 +112,7 @@
         .then(data => {
           if (data.status === 'success') {
             console.log('Input sent successfully:', userInput);
+            document.getElementById('dataset-path').innerHTML = "dataset path:" + userInput;
           } else {
             console.error('Error sending input:', data.message);
           }
