@@ -1,4 +1,4 @@
-project_root/
+app/
 │
 ├── static/
 │   └── plot.html
@@ -19,4 +19,6 @@ project_root/
 │   └── expert_lampshade2_demos.hdf5  # expert demos
 │
 ├── app.py                 # Flask app backend
-└── all_dependencies.txt   # All possible dependencies for the programs in this app to be run *Needs update
+└── requirements.txt       # All possible dependencies for the programs in this app to be run *Needs update
+
+Instructions - run app.py (python3 app.py) then ctrl+click on the server running in the terminal/ type it into a web url. It should open in your web browser. From there, type in the file path to hdf5 file. (data/play_pushing.hdf5 for example) and click a button to graph.
