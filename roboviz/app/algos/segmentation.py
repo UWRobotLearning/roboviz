@@ -213,12 +213,15 @@ def split_edges(X, labels):
 
   # coalesce edges that are too short
   for edge in range(edges):
+    # buggy implementation
     if edge == 0 and edge + 1 in res:
-      if (len(res[edge]) < len(X) / len(indices) * 2):
+      if len(res[edge]) < len(X) / (len(indices) * 2):
         res[edge + 1] = np.concatenate((res[edge + 1], res.pop(edge)), axis = 0)
     else:
       if len(res[edge]) < len(X) / (len(indices) * 2):
         res[edge - 1] = np.concatenate((res[edge - 1], res.pop(edge)), axis=0)
+
+    
   
 
   return res
