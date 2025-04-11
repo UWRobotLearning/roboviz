@@ -30,6 +30,7 @@
         <button class="glossy-button">KMeans</button>
         <button class="glossy-button" onclick="runKernel()">Kernel Density</button>
         <button class="glossy-button" onclick="runSegmentation()">Segmentation</button>
+        <button class="glossy-button" onclick="runPartial()">Partial Trajectories</button>
         <button class="glossy-button">Another Cool Feature</button>
       </div>
     </div>
@@ -75,6 +76,15 @@
           updatePlot();  // This will refresh the plot
         })
         .catch(error => console.error('Error running kernel script:', error));
+    }
+    function runPartial() {
+      fetch('/run_partial')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Partial script run:', data);
+          updatePlot();  // This will refresh the plot
+        })
+        .catch(error => console.error('Error running partial script:', error));
     }
     
     function runSegmentation() {
