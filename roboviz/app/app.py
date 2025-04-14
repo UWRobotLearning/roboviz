@@ -44,7 +44,7 @@ def run_kernel():
 def run_partial():
     if user_input:
         result = subprocess.run(['python', 'algos/partial.py', user_input], capture_output=True, text=True)
-        print(result.stdout)  
+        print(result.stdout)
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
         return jsonify({'status': 'error', 'message': 'No input provided.'})

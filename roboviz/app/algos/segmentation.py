@@ -6,14 +6,16 @@ from sklearn.neighbors import KernelDensity
 import numpy as np
 from pathlib import Path
 import sys
+import pickle
 
 import plotly.express as px
 import plotly.graph_objects as go
 
-def extract_states(dataset_path):
+def extract_states(dataset_path, index):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
+  index = set(index)
 
   demos = list(f["data"].keys())
   num_demos = len(demos)
@@ -28,9 +30,10 @@ def extract_states(dataset_path):
   result = np.zeros((0, demo_grp["obs/states"].shape[1]))
 
   for i, demo_key in enumerate(demos):
-    demo_grp = f["data/{}".format(demo_key)]
-    points = demo_grp["obs/states"]
-    result = np.concatenate((result, points), axis=0)
+    if i in index:
+      demo_grp = f["data/{}".format(demo_key)]
+      points = demo_grp["obs/states"]
+      result = np.concatenate((result, points), axis=0)
 
   return result
 
@@ -38,7 +41,6 @@ def extract_one_demos(dataset_path):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
-
   demos = list(f["data"].keys())
   num_demos = len(demos)
 
@@ -51,17 +53,18 @@ def extract_one_demos(dataset_path):
   result = np.zeros((0, demo_grp["obs/states"].shape[1]))
 
   for i, demo_key in enumerate(demos):
-      demo_grp = f["data/{}".format(demo_key)]
-      points = demo_grp["obs/states"]
-      result = np.concatenate((result, points), axis=0)
-      break
+    demo_grp = f["data/{}".format(demo_key)]
+    points = demo_grp["obs/states"]
+    result = np.concatenate((result, points), axis=0)
+    break
 
   return result
 
-def extract_states_trajectory_separated(dataset_path):
+def extract_states_trajectory_separated(dataset_path, index):
   assert os.path.exists(dataset_path)
 
   f = h5py.File(dataset_path, "r")
+  index = set(index)
 
   demos = list(f["data"].keys())
   num_demos = len(demos)
@@ -74,9 +77,10 @@ def extract_states_trajectory_separated(dataset_path):
   
   result = {}
   for i, demo_key in enumerate(demos):
-    demo_grp = f["data/{}".format(demo_key)]
-    points = demo_grp["obs/states"]
-    result[i] = np.array(points)
+    if i in index:
+      demo_grp = f["data/{}".format(demo_key)]
+      points = demo_grp["obs/states"]
+      result[i] = np.array(points)
 
   return result
 
@@ -253,8 +257,14 @@ def main(states, trajectories, min_cluster_size, one_demo):
   
 if __name__ == "__main__":
   dataset_path = sys.argv[1] # path to dataset, to be changed by user
-  trajectory_separated = extract_states_trajectory_separated(dataset_path)
-  states = extract_states(dataset_path)
+  assert os.path.exists("data/trajectory_mapping.pkl")
+  with open("data/trajectory_mapping.pkl", "rb") as f:
+    mapping = pickle.load(f)
+
+  full_trajectory_indexes = mapping["full"]
+  trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
+  
+  states = extract_states(dataset_path, full_trajectory_indexes)
   one_demo = extract_one_demos(dataset_path)
   min_cluster_size = int(0.1 * states.shape[0])
   main(states, trajectory_separated, min_cluster_size, one_demo)

@@ -3,6 +3,7 @@ import numpy as np
 import plotly.graph_objs as go
 from sklearn.cluster import HDBSCAN
 import pickle
+import sys
 import math
 
 # Global variable to store the mapping of original trajectories.
@@ -95,14 +96,15 @@ def get_original_trajectory_mapping():
 # =============================================================================
 # 8. Main processing function
 # =============================================================================
-def main():
+def main(path):
     global original_trajectory_mapping
 
     # 1. Load the original trajectories and demo names.
-    hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
+    # hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
+    hdf_path_expert = path
     original_trajectories, demo_names = load_trajectories(hdf_path_expert)
     if not original_trajectories:
-        
+        print('Data not found')
         return
     
     # 2. Determine target resample length using the median length.
@@ -114,7 +116,6 @@ def main():
     
     # 4. Extract features using the resampled trajectories.
     features = np.array([extract_features(traj) for traj in resampled_trajectories])
-    
     # 5. Cluster using HDBSCAN (all clusters are retained).
     clusterer = HDBSCAN(min_cluster_size=5, min_samples=2, metric='euclidean')
     cluster_labels = clusterer.fit_predict(features)
@@ -151,13 +152,16 @@ def main():
     
     
     # 8. Build a mapping from demo name to classification ("full" or "partial").
-    mapping = {}
+    mapping = {
+        "full" : [],
+        "partial" : []
+    }
     for i, lab in enumerate(cluster_labels):
         classification = "full" if lab == main_cluster else "partial"
-        mapping[demo_names[i]] = classification
+        mapping[classification].append(i)
     
     original_trajectory_mapping = mapping
-    with open("/gscratch/scrubbed/roboviz/app/data/trajectory_mapping.pkl", "wb") as f:
+    with open("data/trajectory_mapping.pkl", "wb") as f:
         pickle.dump(mapping, f)
     
     # 9. Create a Plotly figure for average trajectories only.
@@ -200,4 +204,4 @@ def main():
     fig.write_html("static/plot.html")
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1])
