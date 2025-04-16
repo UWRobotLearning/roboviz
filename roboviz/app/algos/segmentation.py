@@ -10,6 +10,8 @@ import pickle
 
 import plotly.express as px
 import plotly.graph_objects as go
+import boto3
+from botocore.exceptions import ClientError
 
 def extract_states(dataset_path, index):
   assert os.path.exists(dataset_path)
@@ -225,9 +227,6 @@ def split_edges(X, labels):
       if len(res[edge]) < len(X) / (len(indices) * 2):
         res[edge - 1] = np.concatenate((res[edge - 1], res.pop(edge)), axis=0)
 
-    
-  
-
   return res
 
 def main(states, trajectories, min_cluster_size, one_demo):
@@ -256,10 +255,23 @@ def main(states, trajectories, min_cluster_size, one_demo):
   plot_edges(multi_edges)
   
 if __name__ == "__main__":
+  # intialize boto3 credentials
+  s3 = boto3.client('s3')
+  bucket_name = 'demo-hdf5-robomimic-bucket'
   dataset_path = sys.argv[1] # path to dataset, to be changed by user
-  assert os.path.exists("data/trajectory_mapping.pkl")
-  with open("data/trajectory_mapping.pkl", "rb") as f:
+
+  cur_dir = os.path.dirname(os.path.abspath(__file__))
+  with open(os.path.join(cur_dir, "../data/trajectory_mapping.pkl"), "rb") as f:
     mapping = pickle.load(f)
+
+  # download hdf5
+  if not os.path.exists(dataset_path):
+    print("Downloading file")
+    try:
+      with open(dataset_path, "wb") as f:
+        s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
+    except ClientError as e:
+      print(e)
 
   full_trajectory_indexes = mapping["full"]
   trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
