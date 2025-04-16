@@ -5,6 +5,9 @@ from sklearn.cluster import HDBSCAN
 import pickle
 import sys
 import math
+import os
+import boto3
+from botocore.exceptions import ClientError
 
 # Global variable to store the mapping of original trajectories.
 original_trajectory_mapping = {}
@@ -161,7 +164,7 @@ def main(path):
         mapping[classification].append(i)
     
     original_trajectory_mapping = mapping
-    with open("data/trajectory_mapping.pkl", "wb") as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/trajectory_mapping.pkl"), "wb") as f:
         pickle.dump(mapping, f)
     
     # 9. Create a Plotly figure for average trajectories only.
@@ -201,7 +204,18 @@ def main(path):
     )
     
     # Save the plot as an HTML file (to be displayed on the webpage).
-    fig.write_html("static/plot.html")
+    fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/plot.html"))
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    dataset_path = sys.argv[1]
+    s3 = boto3.client('s3')
+    bucket_name = 'demo-hdf5-robomimic-bucket'
+    # download hdf5
+    if not os.path.exists(dataset_path):
+        print("Downloading file")
+        try:
+            with open(dataset_path, "wb") as f:
+                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
+        except ClientError as e:
+            print(e)
+    main(dataset_path)

@@ -173,7 +173,7 @@ def plot_edges(multi_edges):
           marker=dict(color=color, size=8),
           name=f"Trajectory : {index}, Edge {edge}"
       ))
-  fig.write_html('static/plot.html')
+  fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/plot.html"))
 
 def calculate_centroids(X, labels):
   centroids = np.zeros((0, 3))
