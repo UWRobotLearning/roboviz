@@ -26,11 +26,12 @@
       <div class="controls">
         <input type="range" min="0" max="100" value="50" class="slider">
         <input type="range" min="0" max="100" value="50" class="slider">
-        <button class="glossy-button" onclick="runEntropy()">Entropy</button>
+        <button class="glossy-button" onclick="retrievePlot('entropy.html')">Entropy</button>
         <button class="glossy-button">KMeans</button>
-        <button class="glossy-button" onclick="runKernel()">Kernel Density</button>
-        <button class="glossy-button" onclick="runSegmentation()">Segmentation</button>
-        <button class="glossy-button" onclick="runPartial()">Partial Trajectories</button>
+        <button class="glossy-button" onclick="retrievePlot('kernel.html')">Kernel Density</button>
+        <button class="glossy-button" onclick="retrievePlot('segmentation.html')">Segmentation</button>
+        <button class="glossy-button" onclick="retrievePlot('partial.html')">Partial Trajectories</button>
+        <button class="glossy-button" onclick="runAllScripts()">Run All Scripts</button>
         <button class="glossy-button">Another Cool Feature</button>
       </div>
     </div>
@@ -40,7 +41,7 @@
       <button class="bottom-button">Clusters</button>
       <button class="bottom-button">Arm States</button>
       <button class="bottom-button">Video Data</button>
-      <input type="text" class="bottom-input" placeholder="Enter hdf5 file path..." id="textInput">
+      <input type="text" class="bottom-input" placeholder="Enter full hdf5 file path..." id="textInput">
       <p id="dataset-path">dataset-path: </p>
     </div>
 
@@ -97,10 +98,26 @@
       .catch(error => console.error('Error running kernel script:', error));
     }
 
+    function runAllScripts() {
+      fetch('/run_all')
+        .then(response => response.json())
+        .then(data => {
+          console.log('Running all scripts:', data);
+          updatePlot();
+        })
+      .catch(error => console.error('Error running script:', error));
+    }
+
     // Updates the plot
     function updatePlot() {
       var iframe = document.querySelector('.plot-frame');
       iframe.src = 'static/plot.html?' + new Date().getTime();  // Adding a timestamp to the URL to bypass cache
+    }
+
+    // Retrieve plot
+    function retrievePlot(plotName) {
+      var iframe = document.querySelector('.plot-frame');
+      iframe.src = `static/${plotName}?` + new Date().getTime();
     }
 
 

@@ -173,7 +173,7 @@ def plot_edges(multi_edges):
           marker=dict(color=color, size=8),
           name=f"Trajectory : {index}, Edge {edge}"
       ))
-  fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/plot.html"))
+  fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/segmentation.html"))
 
 def calculate_centroids(X, labels):
   centroids = np.zeros((0, 3))
@@ -258,7 +258,7 @@ if __name__ == "__main__":
   # intialize boto3 credentials
   s3 = boto3.client('s3')
   bucket_name = 'demo-hdf5-robomimic-bucket'
-  dataset_path = sys.argv[1] # path to dataset, to be changed by user
+  dataset_path = sys.argv[1] # path to dataset, to be changed by user. Must be full directory
 
   cur_dir = os.path.dirname(os.path.abspath(__file__))
   with open(os.path.join(cur_dir, "../data/trajectory_mapping.pkl"), "rb") as f:

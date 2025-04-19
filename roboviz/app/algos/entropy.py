@@ -4,6 +4,10 @@ import numpy as np
 import plotly.graph_objs as go
 import plotly.offline as py
 from scipy.stats import entropy
+import sys
+import boto3
+from botocore.exceptions import ClientError
+import os
 
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
     with h5py.File(file_path, 'r') as f:
@@ -55,7 +59,8 @@ def create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, ove
         margin=dict(l=0, r=0, t=30, b=0)
     )
     fig = go.Figure(data=traces, layout=layout)
-    py.plot(fig, filename='static/plot.html', auto_open=False)
+    filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/entropy.html")
+    py.plot(fig, filename=filename, auto_open=False)
 
 def main(user_input=None):
     if not user_input:
@@ -89,6 +94,15 @@ def main(user_input=None):
         create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, overall_entropy, std_entropy, classification)
 
 if __name__ == "__main__":
-    import sys
-    user_input = sys.argv[1] if len(sys.argv) > 1 else None
-    main(user_input)
+    dataset_path = sys.argv[1]
+    s3 = boto3.client('s3')
+    bucket_name = 'demo-hdf5-robomimic-bucket'
+    # download hdf5
+    if not os.path.exists(dataset_path):
+        print("Downloading file")
+        try:
+            with open(dataset_path, "wb") as f:
+                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
+        except ClientError as e:
+            print(e)
+    main(dataset_path)

@@ -204,7 +204,7 @@ def main(path):
     )
     
     # Save the plot as an HTML file (to be displayed on the webpage).
-    fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/plot.html"))
+    fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/partial.html"))
 
 if __name__ == '__main__':
     dataset_path = sys.argv[1]
