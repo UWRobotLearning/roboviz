@@ -4,6 +4,9 @@ import h5py
 import numpy as np
 import plotly.graph_objs as go
 from sklearn.neighbors import KernelDensity
+import os
+import boto3
+from botocore.exceptions import ClientError
 
 # Load data from HDF5 file (states)
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
@@ -111,14 +114,14 @@ def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="Ker
     
     # Create and show the figure with all traces
     fig = go.Figure(data=traces, layout=layout)
-    fig.write_html("static/plot.html")  # Save instead of showing
+    fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/kernel.html"))  # Save instead of showing
 
 
 # Main code to load the data and create a 3D visualization with KDE
 def main(file_path):
     data_type = 'states'  # The key that holds the state data (translation + quaternion)
     obs_type = 'obs'
-    
+
     with h5py.File(file_path, 'r') as f:
         # List all the demos in the dataset
         demos = list(f['data'].keys())
@@ -166,5 +169,15 @@ def main(file_path):
 
 
 if __name__ == "__main__":
-    file_path = sys.argv[1]  # Get the HDF5 file path passed from the command line
-    main(file_path)
+    dataset_path = sys.argv[1]
+    s3 = boto3.client('s3')
+    bucket_name = 'demo-hdf5-robomimic-bucket'
+    # download hdf5
+    if not os.path.exists(dataset_path):
+        print("Downloading file")
+        try:
+            with open(dataset_path, "wb") as f:
+                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
+        except ClientError as e:
+            print(e)
+    main(dataset_path)

@@ -1,6 +1,7 @@
 # app.py
 from flask import Flask, render_template, jsonify, request, send_from_directory
 import subprocess
+import os
 
 app = Flask(__name__)
 
@@ -22,7 +23,8 @@ def get_plot():
 def run_entropy():
     if user_input:
         # Pass the user input to entropy.py via a subprocess call
-        result = subprocess.run(['python', 'algos/entropy.py', user_input], capture_output=True, text=True)
+        script_path = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'algos/entropy.py'))
+        result = subprocess.run(['python', script_path, user_input], capture_output=True, text=True)
         print(result.stdout)  # Print the output of entropy.py for debugging
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
@@ -33,7 +35,8 @@ def run_entropy():
 def run_kernel():
     if user_input:
         # Pass the user input (HDF5 file path) to kernel.py via a subprocess call
-        result = subprocess.run(['python', 'algos/kernel.py', user_input], capture_output=True, text=True)
+        script_path = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'algos/kernel.py'))
+        result = subprocess.run(['python', script_path, user_input], capture_output=True, text=True)
         print(result.stdout)  # Print the output of kernel.py for debugging
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
@@ -43,7 +46,8 @@ def run_kernel():
 @app.route('/run_partial', methods=['GET'])
 def run_partial():
     if user_input:
-        result = subprocess.run(['python', 'algos/partial.py', user_input], capture_output=True, text=True)
+        script_path = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'algos/partial.py'))
+        result = subprocess.run(['python', script_path, user_input], capture_output=True, text=True)
         print(result.stdout)
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
@@ -67,11 +71,29 @@ def handle_input():
 def run_segmentation():
     if user_input:
         # Use the user input to pass as the file path to segmentation.py
-        result = subprocess.run(['python', 'algos/segmentation.py', user_input], capture_output=True, text=True)
+        script_path = os.path.join(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'algos/segmentation.py'))
+        result = subprocess.run(['python', script_path, user_input], capture_output=True, text=True)
         print(result.stdout)  # Print the output of segmentation.py for debugging
         return jsonify({'status': 'success', 'output': result.stdout})
     else:
         return jsonify({'status': 'error', 'message': 'No input provided for segmentation.'})
+    
+@app.route('/run_all', methods=['GET'])
+def run_all():
+    if user_input:
+        print("running kernel.py")
+        run_kernel()
+        print("running entropy.py")
+        run_entropy()
+        print("running partial.py")
+        run_partial()
+        print("running segmentation.py")
+        run_segmentation()
+        return jsonify({'status': 'success'})
+
+    else:
+        return jsonify({'status': 'error', 'message': 'Dataset path not provided.'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
