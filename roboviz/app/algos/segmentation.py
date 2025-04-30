@@ -13,6 +13,9 @@ import plotly.graph_objects as go
 import boto3
 from botocore.exceptions import ClientError
 
+from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
+
+
 def extract_states(dataset_path, index):
   assert os.path.exists(dataset_path)
 
@@ -84,6 +87,12 @@ def extract_states_trajectory_separated(dataset_path, index):
       points = demo_grp["obs/states"]
       result[i] = np.array(points)
 
+  return result
+
+def extract_states_dict(grouped_data):
+  result = {}
+  for i, item in enumerate(grouped_data):
+    result[f'demo_{i}'] = item
   return result
 
 def cluster(X):
@@ -229,7 +238,7 @@ def split_edges(X, labels):
 
   return res
 
-def main(states, trajectories, min_cluster_size, one_demo):
+def main(states, trajectories, min_cluster_size):
   X = states[:, :3]
   print(X.shape)
   
@@ -273,13 +282,17 @@ if __name__ == "__main__":
     except ClientError as e:
       print(e)
 
-  full_trajectory_indexes = mapping["full"]
-  trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
-  
-  states = extract_states(dataset_path, full_trajectory_indexes)
-  one_demo = extract_one_demos(dataset_path)
+  if dataset_path.split('.')[0] == 'hdf5':
+      full_trajectory_indexes = mapping["full"]
+      trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
+      states = extract_states(dataset_path, full_trajectory_indexes)
+  else:
+    # it is a lerobot dataset
+    states = extract_states_ungrouped(dataset_path)
+    trajectory_separated = extract_states_dict(states)
+
   min_cluster_size = int(0.1 * states.shape[0])
-  main(states, trajectory_separated, min_cluster_size, one_demo)
+  main(states, trajectory_separated, min_cluster_size)
   
 
 

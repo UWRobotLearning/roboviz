@@ -8,6 +8,7 @@ import math
 import os
 import boto3
 from botocore.exceptions import ClientError
+from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 
 # Global variable to store the mapping of original trajectories.
 original_trajectory_mapping = {}
@@ -105,11 +106,15 @@ def main(path):
     # 1. Load the original trajectories and demo names.
     # hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
     hdf_path_expert = path
-    original_trajectories, demo_names = load_trajectories(hdf_path_expert)
-    if not original_trajectories:
-        print('Data not found')
+    if path.split('.')[0] == 'hdf5':
+        original_trajectories, demo_names = load_trajectories(hdf_path_expert)
+        if not original_trajectories:
+            print('Data not found')
         return
-    
+    else:
+        # it is a lerobot dataset
+        original_trajectories = extract_states_grouped(hdf_path_expert)
+
     # 2. Determine target resample length using the median length.
     target_length = choose_resample_length(original_trajectories)
     

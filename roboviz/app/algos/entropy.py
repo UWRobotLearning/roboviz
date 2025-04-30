@@ -15,6 +15,7 @@ def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'
         if data_path not in f:
             raise KeyError(f"Key '{data_type}' not found at {data_path}.")
         states = f[data_path][:]
+        print(len(states))
         return states
 
 def extract_translation_data(states):

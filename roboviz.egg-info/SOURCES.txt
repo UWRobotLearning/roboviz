@@ -4,9 +4,11 @@ roboviz.egg-info/PKG-INFO
 roboviz.egg-info/SOURCES.txt
 roboviz.egg-info/dependency_links.txt
 roboviz.egg-info/top_level.txt
+roboviz/lerobot_reader/__init__.py
+roboviz/lerobot_reader/read_data.py
 roboviz/marco/__init__.py
-roboviz/marco/marco_algorithm.py
 roboviz/marco/process_hdf5.py
+roboviz/marco/segmentation.py
 roboviz/marco/datasetTools/TrajectoryDataset.py
 roboviz/marco/datasetTools/__init__.py
 roboviz/marco/datasetTools/main.py
