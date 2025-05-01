@@ -152,7 +152,7 @@ def main():
         x_min, y_min, z_min = translations.min(axis=0)
         x_max, y_max, z_max = translations.max(axis=0)
 
-        grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:30j, y_min:y_max:30j, z_min:z_max:30j]  # 30 points per axis
+        grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:15j, y_min:y_max:15j, z_min:z_max:15j]  # 15 points per axis
 
         # Stack grid points and evaluate the KDE
         grid_points = np.vstack([grid_x.ravel(), grid_y.ravel(), grid_z.ravel()]).T
