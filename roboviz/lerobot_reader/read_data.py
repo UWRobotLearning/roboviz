@@ -29,11 +29,3 @@ def extract_states_ungrouped(dataset_path):
   ds = LeRobotDataset(repo_id="local", root=dataset_path)
   hf = ds.hf_dataset
   return torch.stack(hf['observation.state']).cpu().numpy()
-
-
-def extract_states_dict(dataset_path):
-  result = {}
-  grouped_data = extract_states_grouped(dataset_path)
-  for i, item in enumerate(grouped_data):
-    result[f'demo_{i}'] = item
-  return result

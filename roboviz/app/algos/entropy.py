@@ -8,6 +8,7 @@ import sys
 import boto3
 from botocore.exceptions import ClientError
 import os
+from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
     with h5py.File(file_path, 'r') as f:
@@ -15,7 +16,6 @@ def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'
         if data_path not in f:
             raise KeyError(f"Key '{data_type}' not found at {data_path}.")
         states = f[data_path][:]
-        print(len(states))
         return states
 
 def extract_translation_data(states):
@@ -68,31 +68,37 @@ def main(user_input=None):
         print("No user input received!")
         return
     
-    hdf5_file_path = user_input
+    dataset_path = user_input
     data_type = 'states'
     obs_type = 'obs'
+    all_translations, all_demo_names, entropy_values = [], [], []
     
-    with h5py.File(hdf5_file_path, 'r') as f:
-        demos = list(f['data'].keys())
-        all_translations, all_demo_names, entropy_values = [], [], []
+    if dataset_path.split('.')[1] == 'hdf5':
+        with h5py.File(dataset_path, 'r') as f:
+            demos = list(f['data'].keys())
+            for demo_name in demos:
+                try:
+                    states = load_data_from_hdf5(dataset_path, demo_name, data_type, obs_type)
+                    translations = extract_translation_data(states)
+                    all_translations.append(translations)
+                    all_demo_names.append(demo_name)
+                except KeyError as e:
+                    print(f"Skipping {demo_name}: {e}")
+            
         
-        for demo_name in demos:
-            try:
-                states = load_data_from_hdf5(hdf5_file_path, demo_name, data_type, obs_type)
-                translations = extract_translation_data(states)
-                all_translations.append(translations)
-                all_demo_names.append(demo_name)
-            except KeyError as e:
-                print(f"Skipping {demo_name}: {e}")
-        
-        for translations in all_translations:
-            entropy_values.append(compute_diff_entropy(translations))
+    else:
+        # lerobot dataset
+        states = extract_states_grouped(dataset_path)
+        all_translations = [extract_translation_data(state) for state in states]
+        all_demo_names = [f'demo_{i}' for i in range(len(states))]
 
-        overall_entropy = np.mean(entropy_values)
-        std_entropy = np.std(entropy_values)
-        classification = classify_dataset(std_entropy)
+    for translations in all_translations:
+        entropy_values.append(compute_diff_entropy(translations))
+    overall_entropy = np.mean(entropy_values)
+    std_entropy = np.std(entropy_values)
+    classification = classify_dataset(std_entropy)
 
-        create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, overall_entropy, std_entropy, classification)
+    create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, overall_entropy, std_entropy, classification)
 
 if __name__ == "__main__":
     dataset_path = sys.argv[1]

@@ -7,6 +7,7 @@ from sklearn.neighbors import KernelDensity
 import os
 import boto3
 from botocore.exceptions import ClientError
+from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 
 # Load data from HDF5 file (states)
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
@@ -121,51 +122,55 @@ def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="Ker
 def main(file_path):
     data_type = 'states'  # The key that holds the state data (translation + quaternion)
     obs_type = 'obs'
+    # Store translation data and demo names
+    all_translations = []
+    all_demo_names = []
+    if file_path.split('.')[0] == 'hdf5':
 
-    with h5py.File(file_path, 'r') as f:
-        # List all the demos in the dataset
-        demos = list(f['data'].keys())
-        print("Demos found:", demos)
+        with h5py.File(file_path, 'r') as f:
+            # List all the demos in the dataset
+            demos = list(f['data'].keys())
+            print("Demos found:", demos)
+            # Iterate over all demos
+            for demo_name in demos:
+                try:
+                    states = load_data_from_hdf5(file_path, demo_name, data_type, obs_type)
+                    
+                    # Extract the translation part (x, y, z)
+                    translations = extract_translation_data(states)
+                    
+                    # Append the translations and demo name to the lists
+                    all_translations.append(translations)
+                    all_demo_names.append(demo_name)
+
+                except KeyError as e:
+                    print(f"Skipping {demo_name}: {e}")
+    else:
+        # it is a lerobot dataset
+        states = extract_states_grouped(file_path)
+        all_translations = [extract_translation_data(state) for state in states]
+        all_demo_names = ["demo_{i}" for i in range(len(all_translations))]
         
-        # Store translation data and demo names
-        all_translations = []
-        all_demo_names = []
-        
-        # Iterate over all demos
-        for demo_name in demos:
-            try:
-                states = load_data_from_hdf5(file_path, demo_name, data_type, obs_type)
-                
-                # Extract the translation part (x, y, z)
-                translations = extract_translation_data(states)
-                
-                # Append the translations and demo name to the lists
-                all_translations.append(translations)
-                all_demo_names.append(demo_name)
+    # Plot
+    create_3d_overlay_plot_with_kde(all_translations, all_demo_names)
+    
+    # Compute KDE
+    kde = compute_kde(translations)
+    x_min, y_min, z_min = translations.min(axis=0)
+    x_max, y_max, z_max = translations.max(axis=0)
 
-            except KeyError as e:
-                print(f"Skipping {demo_name}: {e}")
-        
-        # Plot
-        create_3d_overlay_plot_with_kde(all_translations, all_demo_names)
-        
-        # Compute KDE
-        kde = compute_kde(translations)
-        x_min, y_min, z_min = translations.min(axis=0)
-        x_max, y_max, z_max = translations.max(axis=0)
+    grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:15j, y_min:y_max:15j, z_min:z_max:15j]  # 15 points per axis
 
-        grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:15j, y_min:y_max:15j, z_min:z_max:15j]  # 15 points per axis
+    # Stack grid points and evaluate the KDE
+    grid_points = np.vstack([grid_x.ravel(), grid_y.ravel(), grid_z.ravel()]).T
+    kde_values = np.exp(kde.score_samples(grid_points))  # KDE evaluation
 
-        # Stack grid points and evaluate the KDE
-        grid_points = np.vstack([grid_x.ravel(), grid_y.ravel(), grid_z.ravel()]).T
-        kde_values = np.exp(kde.score_samples(grid_points))  # KDE evaluation
+    # Compute and print the min and max of the density values
+    kde_min = kde_values.min()
+    kde_max = kde_values.max()
 
-        # Compute and print the min and max of the density values
-        kde_min = kde_values.min()
-        kde_max = kde_values.max()
-
-        print(f"Min KDE Value: {kde_min}")
-        print(f"Max KDE Value: {kde_max}")
+    print(f"Min KDE Value: {kde_min}")
+    print(f"Max KDE Value: {kde_max}")
 
 
 if __name__ == "__main__":

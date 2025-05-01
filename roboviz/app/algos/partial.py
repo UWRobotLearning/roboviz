@@ -105,19 +105,20 @@ def main(path):
 
     # 1. Load the original trajectories and demo names.
     # hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
+    print(path)
     hdf_path_expert = path
-    if path.split('.')[0] == 'hdf5':
+    if hdf_path_expert.split('.')[1] == 'hdf5':
         original_trajectories, demo_names = load_trajectories(hdf_path_expert)
+        print(original_trajectories)
         if not original_trajectories:
             print('Data not found')
-        return
+            return
     else:
         # it is a lerobot dataset
         original_trajectories = extract_states_grouped(hdf_path_expert)
 
     # 2. Determine target resample length using the median length.
     target_length = choose_resample_length(original_trajectories)
-    
     
     # 3. Create resampled trajectories for clustering/feature extraction (but keep originals).
     resampled_trajectories = [resample_trajectory(traj, target_length) for traj in original_trajectories]
@@ -139,7 +140,6 @@ def main(path):
         entropy_val = compute_cluster_entropy(cluster_features)
         cluster_entropies[lbl] = entropy_val
         
-    
     # 6. Compute average (resampled) trajectory and its total XYZ distance per cluster.
     cluster_avg_trajs = {}
     cluster_xyz_distances = {}
@@ -157,7 +157,7 @@ def main(path):
     
     # 7. Identify the main cluster as the one with the highest XYZ distance.
     main_cluster = max(cluster_xyz_distances, key=cluster_xyz_distances.get)
-    
+    print("3")
     
     # 8. Build a mapping from demo name to classification ("full" or "partial").
     mapping = {
