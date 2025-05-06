@@ -37,84 +37,66 @@ def compute_kde(translations, bandwidth=0.1):
     return kde
 
 # Create a 3D scatter plot with Plotly, overlaying all demos with KDE contours
-def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="Kernel Density Summary Plot"):
-    # Create a list of traces for each demo and KDE density
-    traces = []
-    
-    # Iterate through each demo's translations
-    for i, translations in enumerate(all_translations):
-        
-        # Extract x, y, z coordinates for each demo
-        x = translations[:, 0]
-        y = translations[:, 1]
-        z = translations[:, 2]
-        
-        # Compute KDE for each demo's translations
-        kde = compute_kde(translations)
-        
-        # Create the density data for each demo (density evaluated at the demo's points)
-        kde_values = np.exp(kde.score_samples(translations))  # KDE evaluation for original points
-        
-        # Create scatter plot for each demo with density values as the color
-        trace = go.Scatter3d(
-            x=x,
-            y=y,
-            z=z,
-            mode='markers',
-            marker=dict(
-                size=5,
-                color=kde_values,  # Use KDE values as color
-                colorscale='Viridis',  # Set the colorscale
-                colorbar=dict(title="Density")  # Optionally, add a colorbar
-            ),
-            name=f"Demo {all_demo_names[i]}"
-        )
-        traces.append(trace)
+def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="3D KDE Solid Shape"):
+    # Combine all translations into one big array
+    combined_translations = np.vstack(all_translations)
 
-        # Grid for KDE evaluation 
-        # use the min/max of x, y, and z for the grid
-        x_min, y_min, z_min = translations.min(axis=0)
-        x_max, y_max, z_max = translations.max(axis=0)
-        
-        grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:15j, y_min:y_max:15j, z_min:z_max:15j]  # 15 points per axis
-        
-        # Evaluate the KDE on the grid and stack grid points
-        grid_points = np.vstack([grid_x.ravel(), grid_y.ravel(), grid_z.ravel()]).T
-        kde_values_grid = np.exp(kde.score_samples(grid_points))  # KDE evaluation on the grid
+    # Compute KDE on the combined data
+    kde = compute_kde(combined_translations)
 
-        # Match grid dimensions
-        kde_values_reshaped = kde_values_grid.reshape(grid_x.shape)
-        
-        # Create a 3D surface plot for the KDE density
-        contour_trace = go.Surface(
-            x=grid_x,
-            y=grid_y,
-            z=kde_values_reshaped,  # KDE values (density)
-            colorscale='Viridis',  # Color scale for the surface
-            colorbar=dict(
-                title="Density",  # Title for the color bar
-                tickvals=[],
-                ticktext=[],  # Remove tick labels
-                ticks=""
-            ),
-            opacity=0.7,  # Set opacity for surface to make it visible
-            name=f'KDE Density {all_demo_names[i]}'
-        )
-        traces.append(contour_trace)
-    
-    # Define layout for the plot
+    # Define grid boundaries based on data
+    x_min, y_min, z_min = combined_translations.min(axis=0)
+    x_max, y_max, z_max = combined_translations.max(axis=0)
+
+    # Create grid points for evaluation
+    grid_x, grid_y, grid_z = np.mgrid[x_min:x_max:15j, y_min:y_max:15j, z_min:z_max:15j]
+
+    grid_points = np.vstack([grid_x.ravel(), grid_y.ravel(), grid_z.ravel()]).T
+
+    # Evaluate KDE over the grid points
+    kde_values = np.exp(kde.score_samples(grid_points))
+    kde_values = kde_values.reshape(grid_x.shape)
+  
+    # Volume rendering of the density
+    volume_trace = go.Volume(
+        x=grid_x.ravel(),
+        y=grid_y.ravel(),
+        z=grid_z.ravel(),
+        value=kde_values.ravel(),
+        opacity=0.2,  # Transparency for better visibility
+        surface_count=20,  # Number of surfaces for smoothness
+        colorscale='Viridis',  # Colorscale for density
+        colorbar=dict(title="Density"),
+        caps=dict(x_show=False, y_show=False, z_show=False),
+        name="KDE Volume"
+    )
+
+    # Scatter plot for the points themselves (Can be removed *check screenshots*)
+    scatter = go.Scatter3d(
+        x=combined_translations[:, 0],
+        y=combined_translations[:, 1],
+        z=combined_translations[:, 2],
+        mode='markers',
+        marker=dict(
+            size=2,
+            color='darkblue',  # Color of the scatter points
+            opacity=0.5  # Semi-transparent points
+        ),
+        name='Demo Points'
+    )
+
     layout = go.Layout(
         title=title,
         scene=dict(
             xaxis=dict(title='X'),
             yaxis=dict(title='Y'),
-            zaxis=dict(title='Z'),
+            zaxis=dict(title='Z')
         ),
-        legend=dict(title="Demos", x=0.8, y=0.9)
+        margin=dict(l=0, r=0, b=0, t=0)
     )
-    
+
     # Create and show the figure with all traces
-    fig = go.Figure(data=traces, layout=layout)
+    fig = go.Figure(data=[volume_trace, scatter], layout=layout)
     fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/kernel.html"))  # Save instead of showing
 
 
