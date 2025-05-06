@@ -107,7 +107,7 @@ def main(path):
     # hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
     print(path)
     hdf_path_expert = path
-    if hdf_path_expert.split('.')[1] == 'hdf5':
+    if hdf_path_expert.split('.')[-1] == 'hdf5':
         original_trajectories, demo_names = load_trajectories(hdf_path_expert)
         print(original_trajectories)
         if not original_trajectories:

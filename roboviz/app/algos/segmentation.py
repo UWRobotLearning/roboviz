@@ -282,7 +282,7 @@ if __name__ == "__main__":
     except ClientError as e:
       print(e)
 
-  if dataset_path.split('.')[1] == 'hdf5':
+  if dataset_path.split('.')[-1] == 'hdf5':
       full_trajectory_indexes = mapping["full"]
       trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
       states = extract_states(dataset_path, full_trajectory_indexes)
@@ -295,11 +295,3 @@ if __name__ == "__main__":
   min_cluster_size = int(0.1 * states.shape[0])
   main(states, trajectory_separated, min_cluster_size)
   
-
-
-  
-
-
-
-
-

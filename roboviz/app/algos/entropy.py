@@ -73,7 +73,7 @@ def main(user_input=None):
     obs_type = 'obs'
     all_translations, all_demo_names, entropy_values = [], [], []
     
-    if dataset_path.split('.')[1] == 'hdf5':
+    if dataset_path.split('.')[-1] == 'hdf5':
         with h5py.File(dataset_path, 'r') as f:
             demos = list(f['data'].keys())
             for demo_name in demos:

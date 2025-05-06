@@ -107,8 +107,7 @@ def main(file_path):
     # Store translation data and demo names
     all_translations = []
     all_demo_names = []
-    if file_path.split('.')[0] == 'hdf5':
-
+    if file_path.split('.')[-1] == 'hdf5':
         with h5py.File(file_path, 'r') as f:
             # List all the demos in the dataset
             demos = list(f['data'].keys())
