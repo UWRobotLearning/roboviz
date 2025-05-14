@@ -1,226 +1,220 @@
 import h5py
 import numpy as np
 import plotly.graph_objs as go
-from sklearn.cluster import HDBSCAN
 import pickle
-import sys
-import math
 import os
-import boto3
-from botocore.exceptions import ClientError
-from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
-
-# Global variable to store the mapping of original trajectories.
-original_trajectory_mapping = {}
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import HDBSCAN
 
 # =============================================================================
-# 1. Load trajectories from an HDF5 file and demo names from the file
+# Constants
+# =============================================================================
+MARGIN_RATIO     = 0.10   # ±10% around the median travelled distance
+FULL_FRAC_THRESH = 0.90   # if ≥90% are “full,” override and mark all as full
+MIN_CLUSTER_SIZE = 5      # min cluster size for HDBSCAN
+
+# =============================================================================
+# 1. Load trajectories
 # =============================================================================
 def load_trajectories(file_path):
-    """
-    Loads trajectories and demo names from the provided HDF5 file.
-    Assumes that each demonstration (demo) has a nested 'obs/states' dataset.
-    Returns:
-      - trajectories: list of NumPy arrays, each with shape (n_steps, state_dim)
-      - demo_names: list of corresponding demo names from the file
-    """
-    trajectories = []
-    demo_names = []
+    trajectories, demo_names = [], []
     with h5py.File(file_path, 'r') as hdf:
-        data_group = hdf['data']
-        for demo_key in data_group:
-            demo_group = data_group[demo_key]
-            if 'obs' in demo_group and 'states' in demo_group['obs']:
-                traj = demo_group['obs']['states'][:]
+        for key in hdf['data']:
+            grp = hdf['data'][key]
+            if 'obs' in grp and 'states' in grp['obs']:
+                traj = grp['obs']['states'][:]
                 if traj.shape[0] > 0:
                     trajectories.append(traj)
-                    demo_names.append(demo_key)
+                    demo_names.append(key)
     return trajectories, demo_names
 
 # =============================================================================
-# 2. Choose target resample length (dynamically determined)
-# =============================================================================
-def choose_resample_length(trajectories):
-    lengths = [traj.shape[0] for traj in trajectories]
-    return int(np.median(lengths))
-
-# =============================================================================
-# 3. Resample a trajectory using linear interpolation to a fixed length
-# =============================================================================
-def resample_trajectory(traj, new_length):
-    original_length = traj.shape[0]
-    state_dim = traj.shape[1]
-    old_indices = np.arange(original_length)
-    new_indices = np.linspace(0, original_length - 1, new_length)
-    new_traj = np.zeros((new_length, state_dim))
-    for d in range(state_dim):
-        new_traj[:, d] = np.interp(new_indices, old_indices, traj[:, d])
-    return new_traj
-
-# =============================================================================
-# 4. Feature extraction: flatten the entire resampled trajectory
-# =============================================================================
-def extract_features(traj):
-    return traj.flatten()
-
-# =============================================================================
-# 4.1 Compute the differential entropy for a set of features
-# =============================================================================
-def compute_cluster_entropy(cluster_features):
-    cov = np.cov(cluster_features, rowvar=False)
-    d = cluster_features.shape[1]
-    sign, logdet = np.linalg.slogdet(cov)
-    if sign <= 0:
-        cov += np.eye(d) * 1e-6
-        sign, logdet = np.linalg.slogdet(cov)
-    entropy_val = 0.5 * (d * np.log(2 * np.pi * np.e) + logdet)
-    return entropy_val
-
-# =============================================================================
-# 5. Distance calculation for trajectory comparison (XYZ only)
+# 2. Distance calculation
 # =============================================================================
 def calc_xyz_distance(traj):
-    diff_xyz = np.diff(traj, axis=0)
-    step_dists = np.linalg.norm(diff_xyz, axis=1)
-    return np.sum(step_dists)
+    diffs = np.diff(traj, axis=0)
+    return np.sum(np.linalg.norm(diffs, axis=1))
 
 # =============================================================================
-# 6. Calculate average trajectory for a cluster (used for scoring)
+# 3. Feature extraction (includes start/end positions)
+# =============================================================================
+def extract_features(trajs):
+    feats = []
+    for t in trajs:
+        dist     = calc_xyz_distance(t)
+        speeds   = np.linalg.norm(np.diff(t, axis=0), axis=1)
+        mean_spd = speeds.mean() if speeds.size else 0
+        std_spd  = speeds.std()  if speeds.size else 0
+        start    = t[0]
+        end      = t[-1]
+        feats.append([
+            dist,
+            mean_spd,
+            std_spd,
+            start[0], start[1], start[2],
+            end[0],   end[1],   end[2]
+        ])
+    return np.array(feats)
+
+# =============================================================================
+# 2-b. Resample helpers
+# =============================================================================
+def choose_resample_length(trajs):
+    lengths = [t.shape[0] for t in trajs]
+    return int(np.median(lengths))
+
+def resample_trajectory(traj, new_length):
+    orig_len, dim = traj.shape
+    old_idx = np.arange(orig_len)
+    new_idx = np.linspace(0, orig_len - 1, new_length)
+    out = np.zeros((new_length, dim))
+    for d in range(dim):
+        out[:, d] = np.interp(new_idx, old_idx, traj[:, d])
+    return out
+
+# =============================================================================
+# 3. Average helper
 # =============================================================================
 def average_trajectory(trajs):
     return np.mean(np.stack(trajs, axis=0), axis=0)
 
 # =============================================================================
-# 7. Return the original trajectories mapping
-# =============================================================================
-def get_original_trajectory_mapping():
-    global original_trajectory_mapping
-    return original_trajectory_mapping
-
-# =============================================================================
-# 8. Main processing function
+# 4. Full pipeline
 # =============================================================================
 def main(path):
-    global original_trajectory_mapping
+    # 4.1 load ALL
+    all_trajs, demo_names = load_trajectories(path)
+    if not all_trajs:
+        print("No trajectories found; exiting.")
+        return
 
-    # 1. Load the original trajectories and demo names.
-    # hdf_path_expert = '/gscratch/scrubbed/roboviz/app/data/expert_lampshade2_demos.hdf5'
-    print(path)
-    hdf_path_expert = path
-    if hdf_path_expert.split('.')[-1] == 'hdf5':
-        original_trajectories, demo_names = load_trajectories(hdf_path_expert)
-        print(original_trajectories)
-        if not original_trajectories:
-            print('Data not found')
-            return
-    else:
-        # it is a lerobot dataset
-        original_trajectories = extract_states_grouped(hdf_path_expert)
+    # 4.2 median‐distance filter
+    dists       = [calc_xyz_distance(t) for t in all_trajs]
+    med_dist    = np.median(dists)
+    margin      = med_dist * MARGIN_RATIO
+    print(f"Median travelled distance = {med_dist:.2f} ± {margin:.2f}")
 
-    # 2. Determine target resample length using the median length.
-    target_length = choose_resample_length(original_trajectories)
-    
-    # 3. Create resampled trajectories for clustering/feature extraction (but keep originals).
-    resampled_trajectories = [resample_trajectory(traj, target_length) for traj in original_trajectories]
-    
-    # 4. Extract features using the resampled trajectories.
-    features = np.array([extract_features(traj) for traj in resampled_trajectories])
-    # 5. Cluster using HDBSCAN (all clusters are retained).
-    clusterer = HDBSCAN(min_cluster_size=5, min_samples=2, metric='euclidean')
-    cluster_labels = clusterer.fit_predict(features)
-    unique_labels = np.unique(cluster_labels)
-    
-    
-    # (Optional) Compute differential entropy per cluster. (used in my old algo)
-    cluster_entropies = {}
-    for lbl in unique_labels:
-        cluster_features = features[cluster_labels == lbl]
-        if len(cluster_features) == 0:
-            continue
-        entropy_val = compute_cluster_entropy(cluster_features)
-        cluster_entropies[lbl] = entropy_val
-        
-    # 6. Compute average (resampled) trajectory and its total XYZ distance per cluster.
-    cluster_avg_trajs = {}
-    cluster_xyz_distances = {}
-    for label in unique_labels:
-        indices = [i for i, lab in enumerate(cluster_labels) if lab == label]
-        if not indices:
-            continue
-        cluster_trajs = [resampled_trajectories[i] for i in indices]
-        avg_traj = average_trajectory(cluster_trajs)
-        cluster_avg_trajs[label] = avg_traj
-        
-        distance = calc_xyz_distance(avg_traj)
-        cluster_xyz_distances[label] = distance
-        
-    
-    # 7. Identify the main cluster as the one with the highest XYZ distance.
-    main_cluster = max(cluster_xyz_distances, key=cluster_xyz_distances.get)
-    print("3")
-    
-    # 8. Build a mapping from demo name to classification ("full" or "partial").
-    mapping = {
-        "full" : [],
-        "partial" : []
+    inlier_idxs  = [i for i, d in enumerate(dists) if abs(d - med_dist) <= margin]
+    outlier_idxs = [i for i, d in enumerate(dists) if abs(d - med_dist) >  margin]
+
+    mapping_all = {
+        "full":      inlier_idxs.copy(),
+        "partial":   [],
+        "overshoot": []
     }
-    for i, lab in enumerate(cluster_labels):
-        classification = "full" if lab == main_cluster else "partial"
-        mapping[classification].append(i)
-    
-    original_trajectory_mapping = mapping
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/trajectory_mapping.pkl"), "wb") as f:
-        pickle.dump(mapping, f)
-    
-    # 9. Create a Plotly figure for average trajectories only.
-    fig = go.Figure()
-    for label, avg_traj in cluster_avg_trajs.items():
-        if label == main_cluster:
-            trace = go.Scatter3d(
-                x=avg_traj[:, 0],
-                y=avg_traj[:, 1],
-                z=avg_traj[:, 2],
-                mode='lines+markers',
-                marker=dict(symbol='circle', size=5),
-                line=dict(color='blue', width=3),
-                name=f'Cluster {label} (Main Trajectory)'
-            )
+
+    proc_trajs = [all_trajs[i] for i in outlier_idxs]
+
+    # 4.3 heuristic split
+    endpoints       = np.array([t[-1] for t in proc_trajs])
+    centroid        = endpoints.mean(axis=0)
+    dists_end       = np.linalg.norm(endpoints - centroid, axis=1)
+    radius          = np.percentile(dists_end, 75)
+    xyz_dists_proc  = [calc_xyz_distance(t) for t in proc_trajs]
+    med_xyz         = np.median(xyz_dists_proc)
+    len_tol         = 1.5 * np.std(xyz_dists_proc)
+
+    mapping_heur = {"full": [], "partial": [], "overshoot": []}
+    for i, (de, L) in enumerate(zip(dists_end, xyz_dists_proc)):
+        if de <= radius and abs(L - med_xyz) <= len_tol:
+            mapping_heur["full"].append(i)
+        elif L > med_xyz + len_tol:
+            mapping_heur["overshoot"].append(i)
         else:
-            trace = go.Scatter3d(
-                x=avg_traj[:, 0],
-                y=avg_traj[:, 1],
-                z=avg_traj[:, 2],
-                mode='lines+markers',
-                marker=dict(symbol='x', size=5),
-                line=dict(color='red', width=2, dash='dash'),
-                name=f'Cluster {label} (Partial Trajectory)'
-            )
-        fig.add_trace(trace)
-    
+            mapping_heur["partial"].append(i)
+
+    total = len(proc_trajs)
+    if total > 0 and len(mapping_heur["full"]) / total >= FULL_FRAC_THRESH:
+        print(f">= {int(FULL_FRAC_THRESH*100)}% full → marking ALL as full")
+        mapping_heur = {"full": list(range(total)), "partial": [], "overshoot": []}
+
+    # 4.4 clustering
+    feats     = extract_features(proc_trajs)
+    X         = StandardScaler().fit_transform(feats)
+    clusterer = HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE)
+    labels    = clusterer.fit_predict(X)
+
+    uniq, counts  = np.unique(labels, return_counts=True)
+    main_cluster  = uniq[np.argmax(counts)]
+    mapping_clust = {"full": [], "partial": [], "overshoot": []}
+    for i, lab in enumerate(labels):
+        if lab == main_cluster:
+            mapping_clust["full"].append(i)
+        else:
+            L = xyz_dists_proc[i]
+            if L > med_xyz + len_tol:
+                mapping_clust["overshoot"].append(i)
+            else:
+                mapping_clust["partial"].append(i)
+
+    # 4.5 weak‐label + decision tree
+    y_weak = np.zeros(len(proc_trajs), dtype=int)
+    for i in mapping_heur["partial"]:
+        y_weak[i] = 1
+    for i in mapping_heur["overshoot"]:
+        y_weak[i] = 2
+
+    clf    = DecisionTreeClassifier(max_depth=4).fit(X, y_weak)
+    y_pred = clf.predict(X)
+
+    mapping_temp = {"full": [], "partial": [], "overshoot": []}
+    for i, lab in enumerate(y_pred):
+        mapping_temp[["full","partial","overshoot"][lab]].append(i)
+
+    # merge back into full index space
+    for cls in mapping_temp:
+        for j in mapping_temp[cls]:
+            mapping_all[cls].append(outlier_idxs[j])
+
+    # save mapping
+    out_p = os.path.join(os.path.dirname(__file__), "../data/trajectory_mapping.pkl")
+    with open(out_p, "wb") as f:
+        pickle.dump(mapping_all, f)
+    print("Final mapping saved to", out_p)
+
+    # ──────────── 4.6 PLOT THE **AVERAGE** TRAJECTORIES ────────────
+    # resample all originals to a fixed length for averaging
+    target_len    = choose_resample_length(all_trajs)
+    resampled_all = [resample_trajectory(t, target_len) for t in all_trajs]
+
+    fig = go.Figure()
+    styles = {
+        "full":      dict(line=dict(color='blue',   dash='solid', width=3)),
+        "partial":   dict(line=dict(color='red',    dash='dash',  width=2)),
+        "overshoot": dict(line=dict(color='orange', dash='dot',   width=2))
+    }
+
+    for cls, idxs in mapping_all.items():
+        if not idxs:
+            continue
+        # **average** the resampled curves in this class
+        avg_curve = average_trajectory([resampled_all[i] for i in idxs])
+        fig.add_trace(go.Scatter3d(
+            x=avg_curve[:,0],
+            y=avg_curve[:,1],
+            z=avg_curve[:,2],
+            mode='lines+markers',
+            line=styles[cls]['line'],
+            name=f"{cls.capitalize()} Trajectory"
+        ))
+
     fig.update_layout(
-        title="Average Trajectories by Cluster",
+        title="Average Trajectories by Class",
         scene=dict(
             xaxis=dict(title='X'),
             yaxis=dict(title='Y'),
             zaxis=dict(title='Z')
         ),
-        legend=dict(title="Trajectories"),
+        legend=dict(title="Class"),
         height=800
     )
-    
-    # Save the plot as an HTML file (to be displayed on the webpage).
-    fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/partial.html"))
 
-if __name__ == '__main__':
-    dataset_path = sys.argv[1]
-    s3 = boto3.client('s3')
-    bucket_name = 'demo-hdf5-robomimic-bucket'
-    # download hdf5
-    if not os.path.exists(dataset_path):
-        print("Downloading file")
-        try:
-            with open(dataset_path, "wb") as f:
-                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
-        except ClientError as e:
-            print(e)
+    html_out = os.path.join(os.path.dirname(__file__), "../static/partial.html")
+    fig.write_html(html_out)
+    print("Plot written to", html_out)
+
+
+if __name__ == "__main__":
+    dataset_path = '/Users/omarabdelaziz/Downloads/robodata/expert_lampshade2_demos.hdf5'
     main(dataset_path)
