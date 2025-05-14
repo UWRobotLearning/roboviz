@@ -6,6 +6,8 @@ import os
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import HDBSCAN
+import sys
+from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 
 # =============================================================================
 # Constants
@@ -84,7 +86,11 @@ def average_trajectory(trajs):
 # =============================================================================
 def main(path):
     # 4.1 load ALL
-    all_trajs, demo_names = load_trajectories(path)
+    if path.split('.')[-1] == "hdf5":
+        all_trajs, demo_names = load_trajectories(path)
+    else:
+        all_trajs = extract_states_grouped(path)
+        
     if not all_trajs:
         print("No trajectories found; exiting.")
         return
@@ -216,5 +222,5 @@ def main(path):
 
 
 if __name__ == "__main__":
-    dataset_path = '/Users/omarabdelaziz/Downloads/robodata/expert_lampshade2_demos.hdf5'
+    dataset_path = sys.argv[1]
     main(dataset_path)

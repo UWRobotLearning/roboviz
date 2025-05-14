@@ -167,7 +167,7 @@ Sample input = {'Trajectory_1' : {
   edge_2 = [..],
 }, 'Trajectory_2' : ...}
 """
-def plot_edges(multi_edges):
+def plot_edges(multi_edges, centroids):
   colors = px.colors.qualitative.Plotly
   fig = go.Figure()
   for index, edges in multi_edges.items():
@@ -181,6 +181,16 @@ def plot_edges(multi_edges):
           mode='markers',
           marker=dict(color=color, size=8),
           name=f"Trajectory : {index}, Edge {edge}"
+      ))
+
+  for i, centroid in enumerate(centroids):
+    fig.add_trace(go.Scatter3d(
+          x=[centroid[0]],
+          y=[centroid[1]],
+          z=[centroid[2]],
+          mode='markers',
+          marker=dict(color=color, size=12, symbol="x"),
+          name=f"Centroid {i}"
       ))
   fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/segmentation.html"))
 
@@ -261,7 +271,7 @@ def main(states, trajectories, min_cluster_size):
 
     multi_edges[demo_num] = split_edges(points[:, :3], trajectories_labels[demo_num])
 
-  plot_edges(multi_edges)
+  plot_edges(multi_edges, centroids)
   
 if __name__ == "__main__":
   # intialize boto3 credentials
