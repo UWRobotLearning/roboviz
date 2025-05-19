@@ -156,14 +156,20 @@ def main(file_path):
 
 if __name__ == "__main__":
     dataset_path = sys.argv[1]
-    s3 = boto3.client('s3')
-    bucket_name = 'demo-hdf5-robomimic-bucket'
+    s3 = boto3.resource(
+        's3',
+        endpoint_url='https://s3.kopah.uw.edu',
+        aws_access_key_id='<Access Key>',
+        aws_secret_access_key='<Secret key>', # replace with your secret key
+    )
+    bucket_name = 'roboviz-dataset'
+    s3_obj = s3.Object(bucket_name, "expert_lampshade2_demos.hdf5")
     # download hdf5
     if not os.path.exists(dataset_path):
         print("Downloading file")
         try:
             with open(dataset_path, "wb") as f:
-                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
+                s3_obj.download_fileobj(f)
         except ClientError as e:
             print(e)
     main(dataset_path)

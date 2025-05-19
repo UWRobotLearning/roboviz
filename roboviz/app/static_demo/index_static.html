@@ -1,0 +1,128 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Roboviz App</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Left panel for description -->
+    <div class="left-panel">
+      <h1 id="description">Lampshade Demo</h1>
+    </div>
+
+    <!-- Center Panel: Plot -->
+    <div class="center-panel">
+      <div id="loading">Loading Plot...</div>
+      <iframe src="static/entropy_1.html" class="plot-frame" onload="hideLoading()"></iframe>
+    </div>
+
+
+    <!-- Right panel for controls TODO: add more button features here-->
+    <div class="right-panel">
+      <div class="controls">
+        <button class="glossy-button" onclick="retrievePlot('entropy')">Entropy</button>
+        <button class="glossy-button" onclick="retrievePlot('kernel')">Kernel Density</button>
+        <button class="glossy-button" onclick="retrievePlot('partial')">Partial Trajectories</button>
+        <button class="glossy-button" onclick="retrievePlot('segmentation')">Segmentation</button>
+      </div>
+    </div>
+
+    <!-- Bottom panel for small buttons & file path input TODO: implement features here-->
+    <div class="bottom-panel">
+      <button class="bottom-button" onclick="switchDataset(1)">Lampshade Demo</button>
+      <button class="bottom-button" onclick="switchDataset(2)">One Leg Demo</button>
+    </div>
+
+
+
+
+
+    <!-- Methods for loading the screen and what happens when a button is pressed -->
+  <script>
+    const state = {
+      datasetNumber : 1
+    }
+
+    const description = {
+      1 : "Lampshade Demo",
+      2 : "One Leg Demo"
+    }
+    // hides the loading screen once the content is visible
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // Updates the plot
+    function updatePlot() {
+      var iframe = document.querySelector('.plot-frame');
+      iframe.src = `static/entropy_${state.datasetNumber}.html?` + new Date().getTime();  // Adding a timestamp to the URL to bypass cache
+    }
+
+    // Retrieve plot
+    function retrievePlot(plotName) {
+      var iframe = document.querySelector('.plot-frame');
+      iframe.src = `static/${plotName}_${state.datasetNumber}.html?` + new Date().getTime();
+    }
+
+    // Switch Dataset
+    function switchDataset(datasetNumber) {
+      var h1 = document.getElementById('description');
+      h1.innerHTML = description[datasetNumber];
+      state.datasetNumber = datasetNumber;
+      updatePlot();
+    }
+
+
+    // Event listener to send input and clear input when Enter is pressed
+    document.getElementById('textInput').addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        // Get the user input value
+        const userInput = event.target.value;
+
+        // Send the input data to the backend using Fetch API
+        fetch('/send_input', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ input: userInput })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            console.log('Input sent successfully:', userInput);
+            document.getElementById('dataset-path').innerHTML = "dataset path:" + userInput;
+          } else {
+            console.error('Error sending input:', data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending input:', error);
+        });
+
+        // Clear the input field
+        event.target.value = '';  
+      }
+    });
+  </script>
+
+
+
+
+  <!-- Loading style *messed up the layout when in styles.css for some reason*-->
+  <style>
+    #loading {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</body>
+</html>
