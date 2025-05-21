@@ -8,6 +8,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
+from s3_access.read_from_s3 import download_dataset
 
 # Load data from HDF5 file (states)
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
