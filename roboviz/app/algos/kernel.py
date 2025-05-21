@@ -8,7 +8,8 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
-from s3_access.read_from_s3 import download_dataset
+import argparse
+from roboviz.s3_access.read_from_s3 import download_dataset
 
 # Load data from HDF5 file (states)
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
@@ -100,9 +101,46 @@ def create_3d_overlay_plot_with_kde(all_translations, all_demo_names, title="3D 
     fig = go.Figure(data=[volume_trace, scatter], layout=layout)
     fig.write_html(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/kernel.html"))  # Save instead of showing
 
+def parse_cli() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Run the dataset script; optionally fetch the file from S3 first."
+    )
+    p.add_argument(
+        "dataset_path",
+        help="Local path where the dataset file should live.",
+    )
+    p.add_argument(
+        "--download",
+        metavar="PATH",
+        nargs="?",
+        const="expert_lampshade2_demos.hdf5",
+        help=(
+            "Download the file from the given S3 file path if it is missing. "
+            f"If PATH is omitted, defaults to 'expert_lampshade2_demos.hdf5'."
+        ),
+    )
+
+    p.add_argument(
+        "--creds",
+        default="kopah_creds.json",
+        help=f"Path to S3 credential JSON (default: 'kopah_creds.json').",
+    )
+    return p.parse_args()
 
 # Main code to load the data and create a 3D visualization with KDE
-def main(file_path):
+def main():
+    # decide whether or not to download from S3
+    args = parse_cli()
+    endpoint_url = "https://s3.kopah.uw.edu"
+    bucket_name = 'roboviz-dataset'
+    file_path = args.dataset_path
+    if args.download is not None and not os.path.exists(args.dataset_path):
+        if not os.path.exists(args.creds):
+            print("credential file not found")
+            return
+
+        download_dataset(endpoint_url, bucket_name, args.download, args.dataset_path, args.creds)
+
     data_type = 'states'  # The key that holds the state data (translation + quaternion)
     obs_type = 'obs'
     # Store translation data and demo names
@@ -156,21 +194,4 @@ def main(file_path):
 
 
 if __name__ == "__main__":
-    dataset_path = sys.argv[1]
-    s3 = boto3.resource(
-        's3',
-        endpoint_url='https://s3.kopah.uw.edu',
-        aws_access_key_id='<Access Key>',
-        aws_secret_access_key='<Secret key>', # replace with your secret key
-    )
-    bucket_name = 'roboviz-dataset'
-    s3_obj = s3.Object(bucket_name, "expert_lampshade2_demos.hdf5")
-    # download hdf5
-    if not os.path.exists(dataset_path):
-        print("Downloading file")
-        try:
-            with open(dataset_path, "wb") as f:
-                s3_obj.download_fileobj(f)
-        except ClientError as e:
-            print(e)
-    main(dataset_path)
+    main()

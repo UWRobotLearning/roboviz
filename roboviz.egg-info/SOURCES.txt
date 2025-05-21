@@ -12,3 +12,5 @@ roboviz/marco/segmentation.py
 roboviz/marco/datasetTools/TrajectoryDataset.py
 roboviz/marco/datasetTools/__init__.py
 roboviz/marco/datasetTools/main.py
+roboviz/s3_access/__init__.py
+roboviz/s3_access/read_from_s3.py

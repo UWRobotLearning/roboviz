@@ -10,10 +10,11 @@ import pickle
 
 import plotly.express as px
 import plotly.graph_objects as go
-import boto3
+import argparse
 from botocore.exceptions import ClientError
 
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
+from roboviz.s3_access.read_from_s3 import download_dataset
 
 
 def extract_states(dataset_path, index):
@@ -248,7 +249,58 @@ def split_edges(X, labels):
 
   return res
 
-def main(states, trajectories, min_cluster_size):
+def parse_cli() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Run the dataset script; optionally fetch the file from S3 first."
+    )
+    p.add_argument(
+        "dataset_path",
+        help="Local path where the dataset file should live.",
+    )
+    p.add_argument(
+        "--download",
+        metavar="PATH",
+        nargs="?",
+        const="expert_lampshade2_demos.hdf5",
+        help=(
+            "Download the file from the given S3 file path if it is missing. "
+            f"If PATH is omitted, defaults to 'expert_lampshade2_demos.hdf5'."
+        ),
+    )
+
+    p.add_argument(
+        "--creds",
+        default="kopah_creds.json",
+        help=f"Path to S3 credential JSON (default: 'kopah_creds.json').",
+    )
+    return p.parse_args()
+
+def main():
+  # decide whether or not to download from s3
+  args = parse_cli()
+  endpoint_url = "https://s3.kopah.uw.edu"
+  bucket_name = 'roboviz-dataset'
+  dataset_path = args.dataset_path
+  cur_dir = os.path.dirname(os.path.abspath(__file__))
+  with open(os.path.join(cur_dir, "../data/trajectory_mapping.pkl"), "rb") as f:
+    mapping = pickle.load(f)
+
+  if args.download is not None and not os.path.exists(args.dataset_path):
+      if not os.path.exists(args.creds):
+          print("credential file not found")
+          return
+
+      download_dataset(endpoint_url, bucket_name, args.download, args.dataset_path, args.creds)
+  if dataset_path.split('.')[-1] == 'hdf5':
+      full_trajectory_indexes = mapping["full"]
+      trajectories = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
+      states = extract_states(dataset_path, full_trajectory_indexes)
+  else:
+    # it is a lerobot dataset
+    states = extract_states_ungrouped(dataset_path)
+    trajectories = extract_states_dict(extract_states_grouped(dataset_path))
+
+  min_cluster_size = int(0.1 * states.shape[0])
   X = states[:, :3]
   print(X.shape)
   
@@ -274,34 +326,5 @@ def main(states, trajectories, min_cluster_size):
   plot_edges(multi_edges, centroids)
   
 if __name__ == "__main__":
-  # intialize boto3 credentials
-  s3 = boto3.client('s3')
-  bucket_name = 'demo-hdf5-robomimic-bucket'
-  dataset_path = sys.argv[1] # path to dataset, to be changed by user. Must be full directory
-
-  cur_dir = os.path.dirname(os.path.abspath(__file__))
-  with open(os.path.join(cur_dir, "../data/trajectory_mapping.pkl"), "rb") as f:
-    mapping = pickle.load(f)
-
-  # download hdf5
-  if not os.path.exists(dataset_path):
-    print("Downloading file")
-    try:
-      with open(dataset_path, "wb") as f:
-        s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
-    except ClientError as e:
-      print(e)
-
-  if dataset_path.split('.')[-1] == 'hdf5':
-      full_trajectory_indexes = mapping["full"]
-      trajectory_separated = extract_states_trajectory_separated(dataset_path, full_trajectory_indexes)
-      states = extract_states(dataset_path, full_trajectory_indexes)
-  else:
-    # it is a lerobot dataset
-    states = extract_states_ungrouped(dataset_path)
-    trajectory_separated = extract_states_dict(extract_states_grouped(dataset_path))
-
-
-  min_cluster_size = int(0.1 * states.shape[0])
-  main(states, trajectory_separated, min_cluster_size)
+  main()
   

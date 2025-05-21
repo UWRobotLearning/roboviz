@@ -8,11 +8,10 @@ from pathlib import Path
 """
 Downloads the dataset from remote_file_path to specified local_file_path
 """
-def download_dataset(endpoint_url, bucket_name, remote_file_path, local_file_path):
+def download_dataset(endpoint_url, bucket_name, remote_file_path, local_file_path, creds="kopah_creds.json"):
     # --- 1. Load credentials from JSON ------------------------------------------
-    CREDS_FILENAME = "kopah_creds.json"
 
-    creds_path = Path(__file__).resolve().parents[3] / CREDS_FILENAME
+    creds_path = Path(creds)
 
     if not creds_path.is_file():
         raise FileNotFoundError(f"Credentials file not found: {creds_path}")

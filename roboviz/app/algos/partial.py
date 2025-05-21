@@ -7,6 +7,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import HDBSCAN
 import sys
+import argparse
+from roboviz.s3_access.read_from_s3 import download_dataset
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 
 # =============================================================================
@@ -81,10 +83,48 @@ def resample_trajectory(traj, new_length):
 def average_trajectory(trajs):
     return np.mean(np.stack(trajs, axis=0), axis=0)
 
+def parse_cli() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Run the dataset script; optionally fetch the file from S3 first."
+    )
+    p.add_argument(
+        "dataset_path",
+        help="Local path where the dataset file should live.",
+    )
+    p.add_argument(
+        "--download",
+        metavar="PATH",
+        nargs="?",
+        const="expert_lampshade2_demos.hdf5",
+        help=(
+            "Download the file from the given S3 file path if it is missing. "
+            f"If PATH is omitted, defaults to 'expert_lampshade2_demos.hdf5'."
+        ),
+    )
+
+    p.add_argument(
+        "--creds",
+        default="kopah_creds.json",
+        help=f"Path to S3 credential JSON (default: 'kopah_creds.json').",
+    )
+    return p.parse_args()
+
 # =============================================================================
 # 4. Full pipeline
 # =============================================================================
-def main(path):
+def main():
+    # download from s3 if necessary
+    args = parse_cli()
+    endpoint_url = "https://s3.kopah.uw.edu"
+    bucket_name = 'roboviz-dataset'
+    path = args.dataset_path
+    if args.download is not None and not os.path.exists(args.dataset_path):
+        if not os.path.exists(args.creds):
+            print("credential file not found")
+            return
+
+        download_dataset(endpoint_url, bucket_name, args.download, args.dataset_path, args.creds)
+
     # 4.1 load ALL
     if path.split('.')[-1] == "hdf5":
         all_trajs, demo_names = load_trajectories(path)
@@ -222,5 +262,4 @@ def main(path):
 
 
 if __name__ == "__main__":
-    dataset_path = sys.argv[1]
-    main(dataset_path)
+    main()
