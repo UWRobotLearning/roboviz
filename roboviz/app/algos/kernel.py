@@ -5,8 +5,6 @@ import numpy as np
 import plotly.graph_objs as go
 from sklearn.neighbors import KernelDensity
 import os
-import boto3
-from botocore.exceptions import ClientError
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
 import argparse
 from roboviz.s3_access.read_from_s3 import download_dataset

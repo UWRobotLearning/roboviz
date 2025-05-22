@@ -4,11 +4,10 @@ import numpy as np
 import plotly.graph_objs as go
 import plotly.offline as py
 from scipy.stats import entropy
-import sys
-import boto3
-from botocore.exceptions import ClientError
 import os
 from roboviz.lerobot_reader.read_data import extract_states_grouped, extract_states_ungrouped
+import argparse
+from roboviz.s3_access.read_from_s3 import download_dataset
 
 def load_data_from_hdf5(file_path, demo_name, data_type='states', obs_type='obs'):
     with h5py.File(file_path, 'r') as f:
@@ -63,12 +62,45 @@ def create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, ove
     filename = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../static/entropy.html")
     py.plot(fig, filename=filename, auto_open=False)
 
-def main(user_input=None):
-    if not user_input:
-        print("No user input received!")
-        return
+def parse_cli() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Run the dataset script; optionally fetch the file from S3 first."
+    )
+    p.add_argument(
+        "dataset_path",
+        help="Local path where the dataset file should live.",
+    )
+    p.add_argument(
+        "--download",
+        metavar="PATH",
+        nargs="?",
+        const="expert_lampshade2_demos.hdf5",
+        help=(
+            "Download the file from the given S3 file path if it is missing. "
+            f"If PATH is omitted, defaults to 'expert_lampshade2_demos.hdf5'."
+        ),
+    )
+
+    p.add_argument(
+        "--creds",
+        default="kopah_creds.json",
+        help=f"Path to S3 credential JSON (default: 'kopah_creds.json').",
+    )
+    return p.parse_args()
+
+def main():
+    # decide whether or not to download from S3
+    args = parse_cli()
+    endpoint_url = "https://s3.kopah.uw.edu"
+    bucket_name = 'roboviz-dataset'
+    dataset_path = args.dataset_path
+    if args.download is not None and not os.path.exists(args.dataset_path):
+        if not os.path.exists(args.creds):
+            print("credential file not found")
+            return
+
+        download_dataset(endpoint_url, bucket_name, args.download, args.dataset_path, args.creds)
     
-    dataset_path = user_input
     data_type = 'states'
     obs_type = 'obs'
     all_translations, all_demo_names, entropy_values = [], [], []
@@ -101,15 +133,4 @@ def main(user_input=None):
     create_3d_overlay_plot(all_translations, all_demo_names, entropy_values, overall_entropy, std_entropy, classification)
 
 if __name__ == "__main__":
-    dataset_path = sys.argv[1]
-    s3 = boto3.client('s3')
-    bucket_name = 'demo-hdf5-robomimic-bucket'
-    # download hdf5
-    if not os.path.exists(dataset_path):
-        print("Downloading file")
-        try:
-            with open(dataset_path, "wb") as f:
-                s3.download_fileobj(bucket_name, "expert_lampshade2_demos.hdf5", f)
-        except ClientError as e:
-            print(e)
-    main(dataset_path)
+    main()
