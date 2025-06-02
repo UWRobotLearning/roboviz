@@ -8,4 +8,4 @@ matplotlib
 flask
 scipy
 roboviz @ git+https://github.com/UWRobotLearning/roboviz/
-boto3
+boto3==1.35.95

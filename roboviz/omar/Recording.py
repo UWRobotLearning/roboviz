@@ -224,7 +224,7 @@ def upload_directory_to_s3(directory, bucket, prefix=""):
             s3.upload_file(local_path, bucket, s3_key)
             print(f"Uploaded {local_path} → s3://{bucket}/{s3_key}")
 
-def upload_plots(directory: str,
+def upload_files(directory: str,
                  bucket: str,
                  dataset_name: str,
                  endpoint_url: str | None = None,
@@ -266,9 +266,6 @@ def upload_plots(directory: str,
     # ----------- walk local dir & upload -----------
     for root, dirs, files in os.walk(directory):
         for fname in files:
-            if not fname.lower().endswith(".html"):
-                continue                        # skip non-HTML files (optional)
-
             local_path = os.path.join(root, fname)
             print(local_path)
             # strip off the base directory so we preserve any nested structure
@@ -280,6 +277,21 @@ def upload_plots(directory: str,
             s3.upload_file(local_path, bucket, s3_key)
             
             print(f"✓ {local_path} → s3://{bucket}/{s3_key}")
+
+def run_all_scripts(scripts):
+    # run scripts
+    print("running entropy")
+    script_path = os.path.join(script_dir, 'entropy.py')
+    subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+    print("running kernel")
+    script_path = os.path.join(script_dir, 'kernel.py')
+    subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+    print("running partial")
+    script_path = os.path.join(script_dir, 'partial.py')
+    subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+    print("running segmentation")
+    script_path = os.path.join(script_dir, 'segmentation.py')
+    subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
 
 if __name__ == "__main__":
     main()
@@ -300,23 +312,14 @@ if __name__ == "__main__":
     else:
         print("Skipping S3 upload (pass 'upload' to enable).")
 
-    # run scripts
     if sys.argv[2].lower() == "run":
-        # run all scripts
-        # run kernel.py
-        print("running entropy")
-        script_path = os.path.join(script_dir, 'entropy.py')
-        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-        print("running kernel")
-        script_path = os.path.join(script_dir, 'kernel.py')
-        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-        print("running partial")
-        script_path = os.path.join(script_dir, 'partial.py')
-        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-        print("running segmentation")
-        script_path = os.path.join(script_dir, 'segmentation.py')
-        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+        scripts = ['entropy.py', 'kernel.py', 'partial.py', 'segmentation.py']
+        run_all_scripts(scripts)
     
     if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
-        upload_plots(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+        # upload static plots
+        upload_files(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+        # upload intermediary data
+        upload_files(os.path.join(script_dir, '../data'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+
 
