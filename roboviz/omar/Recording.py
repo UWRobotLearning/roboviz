@@ -8,7 +8,8 @@ import pyarrow.parquet as pq
 import cv2
 from scipy.spatial.transform import Rotation as R
 import boto3
-import sys 
+import sys
+import subprocess
 
 def detect_cameras(raw_dir):
     """
@@ -34,6 +35,7 @@ def detect_cameras(raw_dir):
 
 input_dir   = "path/to/your/raw_data"             # contains demo_0000, demo_0001, ...
 output_dir  = "path/to/output/LeRobot_dataset"
+script_dir = "path/to/script/dir"
 fps         = 20.0                                # robot’s recording rate
 chunk_size  = 1000                                # episodes per chunk folder
 cameras     = detect_cameras(input_dir)
@@ -234,6 +236,22 @@ if __name__ == "__main__":
         print(f"Starting upload of '{output_dir}' to s3://{S3_BUCKET}/{S3_PREFIX}/")
         upload_directory_to_s3(output_dir, S3_BUCKET, S3_PREFIX)
         print("Upload complete.")
+        if sys.argv[2].lower() == "run":
+            # run all scripts
+            # run kernel.py
+            print("running entropy")
+            script_path = os.path.join(script_dir, 'entropy.py')
+            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+            print("running kernel")
+            script_path = os.path.join(script_dir, 'kernel.py')
+            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+            print("running partial")
+            script_path = os.path.join(script_dir, 'partial.py')
+            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+            print("running segmentation")
+            script_path = os.path.join(script_dir, 'segmentation.py')
+            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+
     else:
         print("Skipping S3 upload (pass 'upload' to enable).")
     
