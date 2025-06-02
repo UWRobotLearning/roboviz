@@ -236,23 +236,25 @@ if __name__ == "__main__":
         print(f"Starting upload of '{output_dir}' to s3://{S3_BUCKET}/{S3_PREFIX}/")
         upload_directory_to_s3(output_dir, S3_BUCKET, S3_PREFIX)
         print("Upload complete.")
-        if sys.argv[2].lower() == "run":
-            # run all scripts
-            # run kernel.py
-            print("running entropy")
-            script_path = os.path.join(script_dir, 'entropy.py')
-            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-            print("running kernel")
-            script_path = os.path.join(script_dir, 'kernel.py')
-            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-            print("running partial")
-            script_path = os.path.join(script_dir, 'partial.py')
-            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
-            print("running segmentation")
-            script_path = os.path.join(script_dir, 'segmentation.py')
-            result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
 
     else:
         print("Skipping S3 upload (pass 'upload' to enable).")
+
+    # run scripts
+    if sys.argv[2].lower() == "run":
+        # run all scripts
+        # run kernel.py
+        print("running entropy")
+        script_path = os.path.join(script_dir, 'entropy.py')
+        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+        print("running kernel")
+        script_path = os.path.join(script_dir, 'kernel.py')
+        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+        print("running partial")
+        script_path = os.path.join(script_dir, 'partial.py')
+        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
+        print("running segmentation")
+        script_path = os.path.join(script_dir, 'segmentation.py')
+        result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
     
     
