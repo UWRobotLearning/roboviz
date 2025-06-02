@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation as R
 import boto3
 import sys
 import subprocess
+from botocore.exceptions import ClientError
 
 def detect_cameras(raw_dir):
     """
@@ -36,6 +37,8 @@ def detect_cameras(raw_dir):
 input_dir   = "path/to/your/raw_data"             # contains demo_0000, demo_0001, ...
 output_dir  = "path/to/output/LeRobot_dataset"
 script_dir = "path/to/script/dir"
+DATASET_NAME = "Dataset Name"
+S3_ENDPOINT = "https://s3.kopah.uw.edu"
 fps         = 20.0                                # robot’s recording rate
 chunk_size  = 1000                                # episodes per chunk folder
 cameras     = detect_cameras(input_dir)
@@ -221,6 +224,63 @@ def upload_directory_to_s3(directory, bucket, prefix=""):
             s3.upload_file(local_path, bucket, s3_key)
             print(f"Uploaded {local_path} → s3://{bucket}/{s3_key}")
 
+def upload_plots(directory: str,
+                 bucket: str,
+                 dataset_name: str,
+                 endpoint_url: str | None = None,
+                 creds_json: str | None = None):
+    """
+    Walk `directory`, find every *.html file, and upload it to
+    s3://<bucket>/<dataset_name>/plots/<relative_path>.html
+
+    Parameters
+    ----------
+    directory : str
+        Local path containing Plotly HTML files (can have sub-folders).
+    bucket : str
+        Name of the S3 bucket.
+    dataset_name : str
+        Top-level prefix in the bucket.
+    endpoint_url : str | None
+        Custom S3 endpoint (leave None for AWS).
+    creds_json : str | None
+        Optional path to JSON creds file with
+        { "aws_access_key_id": "...", "aws_secret_access_key": "..." }.
+    """
+    print("Uploading")
+    # ----------- build the S3 client -----------
+    if creds_json:
+        with open(creds_json) as fh:
+            creds = json.load(fh)
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=creds["access_key"],
+            aws_secret_access_key=creds["secret_key"],
+        )
+    else:
+        s3 = boto3.client("s3", endpoint_url=endpoint_url)
+
+    prefix = f"{dataset_name}/plots"           # destination “folder” in the bucket
+
+    # ----------- walk local dir & upload -----------
+    for root, dirs, files in os.walk(directory):
+        for fname in files:
+            if not fname.lower().endswith(".html"):
+                continue                        # skip non-HTML files (optional)
+
+            local_path = os.path.join(root, fname)
+            print(local_path)
+            # strip off the base directory so we preserve any nested structure
+            rel_path = os.path.relpath(local_path, directory)
+
+            # build the full object key and normalize separators
+            s3_key = os.path.join(prefix, rel_path).replace(os.sep, "/")
+
+            s3.upload_file(local_path, bucket, s3_key)
+            
+            print(f"✓ {local_path} → s3://{bucket}/{s3_key}")
+
 if __name__ == "__main__":
     main()
     
@@ -257,4 +317,6 @@ if __name__ == "__main__":
         script_path = os.path.join(script_dir, 'segmentation.py')
         result = subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
     
-    
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
+        upload_plots(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+
