@@ -36,12 +36,14 @@ def detect_cameras(raw_dir):
 
 input_dir   = "path/to/your/raw_data"             # contains demo_0000, demo_0001, ...
 output_dir  = "path/to/output/LeRobot_dataset"
-script_dir = "path/to/script/dir"
+script_dir = "algos directory"
 DATASET_NAME = "Dataset Name"
 S3_ENDPOINT = "https://s3.kopah.uw.edu"
+S3_BUCKET = "roboviz-dataset"
+KOPAH_CREDS = "kopah creds"
 fps         = 20.0                                # robot’s recording rate
 chunk_size  = 1000                                # episodes per chunk folder
-cameras     = detect_cameras(input_dir)
+#cameras     = detect_cameras(input_dir)
 DEPTH_MAX   = 1.0                                 # depth clip at 1 m
 # ----------------------------------------------------------------
 
@@ -207,14 +209,28 @@ def main():
     print(f"Conversion complete: {total_eps} eps, {total_frames} frames → {output_dir}")
 
 
-def upload_directory_to_s3(directory, bucket, prefix=""):
+def upload_directory_to_s3(directory, bucket, prefix="",
+                           endpoint_url: str | None = None,
+                           creds_json: str | None = None):
     """
     Recursively upload a directory to S3, preserving folder structure.
     :param directory: local path to upload
     :param bucket: S3 bucket name
     :param prefix: key prefix inside the bucket (no leading slash)
     """
-    s3 = boto3.client("s3")
+    # ----------- build the S3 client -----------
+    if creds_json:
+        with open(creds_json) as fh:
+            creds = json.load(fh)
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=creds["access_key"],
+            aws_secret_access_key=creds["secret_key"],
+        )
+    else:
+        s3 = boto3.client("s3", endpoint_url=endpoint_url)
+
     for root, dirs, files in os.walk(directory):
         for fname in files:
             local_path = os.path.join(root, fname)
@@ -306,7 +322,7 @@ if __name__ == "__main__":
         S3_BUCKET = "your-bucket-name"
         S3_PREFIX = "optional/prefix"  # or leave empty
         print(f"Starting upload of '{output_dir}' to s3://{S3_BUCKET}/{S3_PREFIX}/")
-        upload_directory_to_s3(output_dir, S3_BUCKET, S3_PREFIX)
+        upload_directory_to_s3(output_dir, S3_BUCKET, S3_PREFIX, S3_ENDPOINT, KOPAH_CREDS)
         print("Upload complete.")
 
     else:
@@ -318,8 +334,8 @@ if __name__ == "__main__":
     
     if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
         # upload static plots
-        upload_files(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+        upload_files(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
         # upload intermediary data
-        upload_files(os.path.join(script_dir, '../data'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT)
+        upload_files(os.path.join(script_dir, '../data'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
 
 

@@ -1,4 +1,4 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.1
 Name: roboviz
 Version: 0.1.0
 Summary: A brief description of your project
@@ -11,11 +11,3 @@ Classifier: Operating System :: OS Independent
 Requires: numpy
 Requires-Python: >=3.6
 Description-Content-Type: text/markdown
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: requires
-Dynamic: requires-python
-Dynamic: summary
