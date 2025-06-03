@@ -63,7 +63,6 @@ def main(file_path):
         "Top View (X vs Y)": (0, 1, (False, False)),
         "Front View (X vs Z)": (0, 2, (False, False)),
         "Left View (Y vs Z)": (1, 2, (False, False)),
-        "Right View (Y vs -Z)": (1, 2, (True, False)),
     }
 
     data_type = 'states'
@@ -90,9 +89,16 @@ def main(file_path):
     contour = None
 
     # Generate the views
+    view_count = 0  # Track number of views plotted
+
     for i, (view_name, (axis_x, axis_y, negate_flags)) in enumerate(projections.items()):
         projected = extract_projection(full_data, axes=(axis_x, axis_y), negate=negate_flags)
-        contour = plot_density(axs[i], projected, view_name, contour)
+        contour = plot_density(axs[view_count], projected, view_name, contour)
+        view_count += 1
+
+    # remove the 4th subplot (but we'll pretend it's still there for aesthetics)
+    if view_count < len(axs):
+        axs[view_count].axis('off')
 
     # Legend as a colorbar display
     cbar = fig.colorbar(contour, ax=axs, orientation='vertical', fraction=0.02, pad=0.04)
@@ -110,11 +116,12 @@ def main(file_path):
             f.write(f'<img src="data:image/png;base64,{img}" style="width: 100%; height: auto;">\n')
             f.write('</td>\n')
             if i % 2 == 1:
-                f.write("</tr>\n")
+                f.write("</tr>\n")  # End the row after the second image
 
         f.write("</table>\n")  # End table
         f.write("</body></html>\n")
 
+    # Adjust layout to fit colorbar
     plt.tight_layout()
     plt.subplots_adjust(right=0.85)
     plt.show()
