@@ -11,6 +11,7 @@ import boto3
 import sys
 import subprocess
 from botocore.exceptions import ClientError
+import argparse
 
 def detect_cameras(raw_dir):
     """
@@ -36,15 +37,18 @@ def detect_cameras(raw_dir):
 
 input_dir   = "path/to/your/raw_data"             # contains demo_0000, demo_0001, ...
 output_dir  = "path/to/output/LeRobot_dataset"
-script_dir = "algos directory"
-DATASET_NAME = "Dataset Name"
+script_dir = "roboviz/app/algos"
+DATASET_NAME = "MY_DATASET"
 S3_ENDPOINT = "https://s3.kopah.uw.edu"
 S3_BUCKET = "roboviz-dataset"
-KOPAH_CREDS = "kopah creds"
+S3_PREFIX = ""  # prefix in S3 bucket (optional), this is where the files will be uploaded, otherwise
+                               # they will be uploaded to the root of the bucket
+KOPAH_CREDS = "path/to/kopah/creds"
 fps         = 20.0                                # robot’s recording rate
 chunk_size  = 1000                                # episodes per chunk folder
-#cameras     = detect_cameras(input_dir)
 DEPTH_MAX   = 1.0                                 # depth clip at 1 m
+cameras     = detect_cameras(input_dir)
+DEFAULT_SCRIPTS = ['entropy.py', 'kernel.py', 'partial.py', 'segmentation.py']
 # ----------------------------------------------------------------
 
 # ----------------------------------------------------------------
@@ -309,16 +313,34 @@ def run_all_scripts(scripts):
     script_path = os.path.join(script_dir, 'segmentation.py')
     subprocess.run(['python', script_path, output_dir], capture_output=True, text=True)
 
+def parse_cli() -> argparse.Namespace:
+    """Return parsed command-line arguments."""
+    parser = argparse.ArgumentParser(
+        prog="Recording.py",
+        description="Convert Recording to LeRobot format, run analysis pipelines and/or upload the outputs to S3.",
+    )
+
+    parser.add_argument(
+        "-r", "--run",
+        action="store_false",
+        help="Execute the local analysis scripts.",
+    )
+
+    parser.add_argument(
+        "-u", "--upload",
+        action="store_false",
+        help="Upload generated files to S3 after the run completes.",
+    )
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    args = parse_cli()
     main()
     
-    # Upload to S3 --
-    S3_BUCKET = "your-bucket-name"
-    S3_PREFIX = "optional/prefix"  # prefix in S3 bucket (optional), this is where the files will be uploaded, otherwise
-    # they will be uploaded to the root of the bucket
     
-    # only upload if invoked with `upload`
-    if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
+    if args.upload:
         S3_BUCKET = "your-bucket-name"
         S3_PREFIX = "optional/prefix"  # or leave empty
         print(f"Starting upload of '{output_dir}' to s3://{S3_BUCKET}/{S3_PREFIX}/")
@@ -328,14 +350,12 @@ if __name__ == "__main__":
     else:
         print("Skipping S3 upload (pass 'upload' to enable).")
 
-    if sys.argv[2].lower() == "run":
-        scripts = ['entropy.py', 'kernel.py', 'partial.py', 'segmentation.py']
-        run_all_scripts(scripts)
-    
-    if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
-        # upload static plots
-        upload_files(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
-        # upload intermediary data
-        upload_files(os.path.join(script_dir, '../data'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
+    if args.run:
+        run_all_scripts(DEFAULT_SCRIPTS)
+        if len(sys.argv) > 1 and sys.argv[1].lower() == "upload":
+            # upload static plots
+            upload_files(os.path.join(script_dir, '../static'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
+            # upload intermediary data
+            upload_files(os.path.join(script_dir, '../data'), S3_BUCKET, DATASET_NAME, S3_ENDPOINT, KOPAH_CREDS)
 
 

@@ -11,13 +11,13 @@
     <!-- Left panel for description -->
     <div class="left-panel">
       <h1>Lampshade Demos</h1>
-      <iframe src="static/description.html" frameborder="0" style="width: 100%; height: calc(100% - 40px); border-radius: 10px;"></iframe>
+      <iframe src="" frameborder="0" style="width: 100%; height: calc(100% - 40px); border-radius: 10px;"></iframe>
     </div>
 
     <!-- Center Panel: Plot -->
     <div class="center-panel">
       <div id="loading">Loading Plot...</div>
-      <iframe src="static/plot.html" class="plot-frame" onload="hideLoading()"></iframe>
+      <iframe src="static/kernel.html" class="plot-frame" onload="hideLoading()"></iframe>
     </div>
 
 
@@ -27,12 +27,11 @@
         <input type="range" min="0" max="100" value="50" class="slider">
         <input type="range" min="0" max="100" value="50" class="slider">
         <button class="glossy-button" onclick="retrievePlot('entropy.html')">Entropy</button>
-        <button class="glossy-button">KMeans</button>
         <button class="glossy-button" onclick="retrievePlot('kernel.html')">Kernel Density</button>
         <button class="glossy-button" onclick="retrievePlot('segmentation.html')">Segmentation</button>
         <button class="glossy-button" onclick="retrievePlot('partial.html')">Partial Trajectories</button>
-        <button class="glossy-button" onclick="runAllScripts()">Run All Scripts</button>
-        <button class="glossy-button">Another Cool Feature</button>
+        <!-- button class="glossy-button" onclick="runAllScripts()">Run All Scripts</button-->
+        <!-- button class="glossy-button">Another Cool Feature</button-->
       </div>
     </div>
 
